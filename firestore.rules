@@ -1,0 +1,64 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Función para verificar si el usuario es SuperAdmin
+    function isSuperAdmin() {
+      return request.auth != null && 
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.rol == 'superadmin' ||
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.email == 'datasensecat@gmail.com');
+    }
+
+    // Función para verificar pertenencia a un inquilino (Tenant)
+    function isTenant(tenantId) {
+      return request.auth != null && 
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tenantId == tenantId || isSuperAdmin());
+    }
+
+    // Regla global para SuperAdmin: Acceso total
+    match /{document=**} {
+      allow read, write: if isSuperAdmin();
+    }
+
+    // Reglas por colección
+    match /users/{userId} {
+      allow read: if request.auth != null && (request.auth.uid == userId || isSuperAdmin());
+      allow write: if isSuperAdmin();
+    }
+
+    match /products/{productId} {
+      allow read: if isTenant(resource.data.tenantId) || isTenant(request.resource.data.tenantId);
+      allow write: if isTenant(request.resource.data.tenantId);
+    }
+
+    match /orders/{orderId} {
+      allow read: if isTenant(resource.data.tenantId) || isTenant(request.resource.data.tenantId);
+      allow write: if isTenant(request.resource.data.tenantId);
+    }
+
+    match /sales/{saleId} {
+      allow read: if isTenant(resource.data.tenantId) || isTenant(request.resource.data.tenantId);
+      allow write: if isTenant(request.resource.data.tenantId);
+    }
+
+    match /customers/{customerId} {
+      allow read: if isTenant(resource.data.tenantId) || isTenant(request.resource.data.tenantId);
+      allow write: if isTenant(request.resource.data.tenantId);
+    }
+    
+    match /store_configs/{tenantId} {
+      allow read: if request.auth != null;
+      allow write: if isSuperAdmin();
+    }
+
+    match /settings/{settingId} {
+      allow read: if request.auth != null;
+      allow write: if isSuperAdmin();
+    }
+    
+    match /cash_registers/{registerId} {
+      allow read, write: if isTenant(resource.data.tenantId) || isTenant(request.resource.data.tenantId);
+    }
+  }
+}
