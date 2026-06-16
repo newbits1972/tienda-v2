@@ -3,13 +3,22 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { collection, onSnapshot, query, where, setDoc, Timestamp, doc, runTransaction, getDoc, orderBy, limit, updateDoc, increment, getDocs } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
-import { ShoppingBag, DollarSign, Keyboard, Bell, History, Eye, Search, Tag, Package } from 'lucide-react';
+import { ShoppingBag, DollarSign, Keyboard, Bell, History, Eye, Search, Tag, Package, Store, RotateCcw } from 'lucide-react';
 import { ShoppingCart } from '@/components/pos/ShoppingCart';
 import { WeighableModal } from '@/components/pos/WeighableModal';
 import { CheckoutDialog } from '@/components/pos/CheckoutDialog';
 import { RegisterCloseDialog } from '@/components/pos/RegisterCloseDialog';
 import { RegisterOpenDialog } from '@/components/pos/RegisterOpenDialog';
 import { PendingOrdersDialog } from '@/components/pos/PendingOrdersDialog';
+import { PickupPanel } from '@/components/pos/PickupPanel';
+import { ReturnDialog } from '@/components/sales/ReturnDialog';
+import {
+    Dialog as UIDialog,
+    DialogContent as UIDialogContent,
+    DialogHeader as UIDialogHeader,
+    DialogTitle as UIDialogTitle,
+    DialogDescription as UIDialogDescription,
+} from '@/components/ui/dialog';
 import { SaleDetailsDialog } from '@/components/pos/SaleDetailsDialog';
 import { ProductSelectorDialog } from '@/components/pos/ProductSelectorDialog';
 import { QuickAccessGrid } from '@/components/pos/QuickAccessGrid';
@@ -56,6 +65,8 @@ export default function POSPage() {
     const [businessData, setBusinessData] = useState(DEFAULT_BUSINESS_DATA);
     const [pendingOrders, setPendingOrders] = useState<OnlineOrder[]>([]);
     const [isPendingOrdersOpen, setIsPendingOrdersOpen] = useState(false);
+    const [isPickupOpen, setIsPickupOpen] = useState(false);
+    const [isReturnOpen, setIsReturnOpen] = useState(false);
     const [recentSales, setRecentSales] = useState<Sale[]>([]);
     const [selectedSaleForDetails, setSelectedSaleForDetails] = useState<Sale | null>(null);
     const [isDetailsOpen, setIsDetailsOpen] = useState(false);
@@ -626,14 +637,30 @@ export default function POSPage() {
                     </Button>
                 </div>
 
-                <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowHotkeys(!showHotkeys)}
-                >
-                    <Keyboard className="w-4 h-4 mr-2" />
-                    Atajos (F1)
-                </Button>
+                <div className="flex items-center gap-2">
+                    {pendingOrders.filter(o => o.tipo_entrega === 'retiro_tienda' && o.estado !== 'retirado' && o.estado !== 'cancelado').length > 0 && (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setIsPickupOpen(!isPickupOpen)}
+                            className="relative border-green-500/30 text-green-500 hover:bg-green-500/10"
+                        >
+                            <Store className="w-4 h-4 mr-2" />
+                            Retiro
+                            <Badge className="ml-1 h-4 min-w-4 text-[9px] bg-green-500 text-white">
+                                {pendingOrders.filter(o => o.tipo_entrega === 'retiro_tienda' && o.estado !== 'retirado' && o.estado !== 'cancelado').length}
+                            </Badge>
+                        </Button>
+                    )}
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShowHotkeys(!showHotkeys)}
+                    >
+                        <Keyboard className="w-4 h-4 mr-2" />
+                        Atajos (F1)
+                    </Button>
+                </div>
             </div>
 
             {/* Hotkeys Help */}
@@ -753,6 +780,16 @@ export default function POSPage() {
                             Cerrar Caja
                         </Button>
                     </div>
+
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setIsReturnOpen(true)}
+                        className="w-full border-border hover:bg-accent text-xs"
+                    >
+                        <RotateCcw className="w-3 h-3 mr-2" />
+                        Devoluciones (BORIS)
+                    </Button>
                 </div>
             </div>
 
@@ -800,6 +837,26 @@ export default function POSPage() {
                 isOpen={isPendingOrdersOpen}
                 onClose={() => setIsPendingOrdersOpen(false)}
                 onLoadOrder={handleLoadOnlineOrder}
+            />
+
+            <UIDialog open={isPickupOpen} onOpenChange={setIsPickupOpen}>
+                <UIDialogContent className="sm:max-w-[600px] bg-card border-border">
+                    <UIDialogHeader>
+                        <UIDialogTitle className="text-xl font-bold flex items-center gap-2">
+                            <Store className="w-5 h-5 text-primary" />
+                            Pedidos para Retirar en Tienda
+                        </UIDialogTitle>
+                        <UIDialogDescription>
+                            Gestioná los pedidos que los clientes vienen a retirar.
+                        </UIDialogDescription>
+                    </UIDialogHeader>
+                    <PickupPanel orders={pendingOrders} />
+                </UIDialogContent>
+            </UIDialog>
+
+            <ReturnDialog
+                isOpen={isReturnOpen}
+                onClose={() => setIsReturnOpen(false)}
             />
 
             <SaleDetailsDialog

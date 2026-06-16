@@ -32,7 +32,8 @@ import {
     CheckCircle2,
     FileImage,
     ChefHat,
-    Sandwich
+    Sandwich,
+    MapPin
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -101,6 +102,8 @@ function TenantCatalogoClient() {
     const [paymentStep, setPaymentStep] = useState<'checkout' | 'payment'>('checkout');
     const [paymentMethod, setPaymentMethod] = useState<'transfer' | 'mercadopago' | 'astropay' | null>(null);
     const [comprobanteUrl, setComprobanteUrl] = useState<string | null>(null);
+    const [tipoEntrega, setTipoEntrega] = useState<'retiro_tienda' | 'envio_domicilio'>('retiro_tienda');
+    const [deliveryAddress, setDeliveryAddress] = useState('');
     const { uploadImage, uploading: isUploadingImage, progress: uploadProgress } = useImageUpload();
 
     // Selector State
@@ -364,6 +367,12 @@ function TenantCatalogoClient() {
                 message += `${detail}: ${formatCurrency(sub)}\n`;
                 if (item.notes) message += `  _Nota: ${item.notes}_\n`;
             });
+            if (tipoEntrega === 'retiro_tienda') {
+                message += `📍 *Retira en Tienda*\n\n`;
+            } else {
+                message += `🚚 *Envío a Domicilio:* ${deliveryAddress || 'A confirmar'}\n\n`;
+            }
+
             message += `\n*TOTAL: ${formatCurrency(cartTotal)}*\n\n`;
 
             if (paymentMethod === 'transfer') {
@@ -418,6 +427,8 @@ function TenantCatalogoClient() {
                         items: orderItems,
                         total: cartTotal,
                         estado: 'pendiente',
+                        tipo_entrega: tipoEntrega,
+                        direccion_entrega: tipoEntrega === 'envio_domicilio' ? deliveryAddress : null,
                         metodo_pago: paymentMethod,
                         pago_confirmado: false,
                         pago_id: paymentId,
@@ -470,6 +481,8 @@ function TenantCatalogoClient() {
                         items: orderItems,
                         total: cartTotal,
                         estado: 'pendiente',
+                        tipo_entrega: tipoEntrega,
+                        direccion_entrega: tipoEntrega === 'envio_domicilio' ? deliveryAddress : null,
                         metodo_pago: paymentMethod,
                         pago_confirmado: false,
                         pago_id: paymentId,
@@ -491,6 +504,8 @@ function TenantCatalogoClient() {
                 items: orderItems,
                 total: cartTotal,
                 estado: 'pendiente',
+                tipo_entrega: tipoEntrega,
+                direccion_entrega: tipoEntrega === 'envio_domicilio' ? deliveryAddress : null,
                 metodo_pago: paymentMethod,
                 comprobante_url: comprobanteUrl,
                 pago_confirmado: paymentMethod === 'transfer' ? false : true,
@@ -796,6 +811,26 @@ function TenantCatalogoClient() {
 
                         {paymentStep === 'checkout' ? (
                             <div className="space-y-6">
+                                {/* Fulfillment Type Selector */}
+                                <div className="grid grid-cols-2 gap-2">
+                                    <button
+                                        onClick={() => setTipoEntrega('retiro_tienda')}
+                                        className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center text-center gap-1 ${tipoEntrega === 'retiro_tienda' ? 'border-primary bg-primary/5' : 'border-border bg-muted'}`}
+                                    >
+                                        <Store className={`w-5 h-5 ${tipoEntrega === 'retiro_tienda' ? 'text-primary' : 'text-muted-foreground'}`} />
+                                        <span className="font-black text-xs text-foreground">Retiro en Tienda</span>
+                                        <span className="text-[8px] text-muted-foreground font-bold uppercase tracking-wider">Sin costo</span>
+                                    </button>
+                                    <button
+                                        onClick={() => setTipoEntrega('envio_domicilio')}
+                                        className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center text-center gap-1 ${tipoEntrega === 'envio_domicilio' ? 'border-primary bg-primary/5' : 'border-border bg-muted'}`}
+                                    >
+                                        <Building2 className={`w-5 h-5 ${tipoEntrega === 'envio_domicilio' ? 'text-primary' : 'text-muted-foreground'}`} />
+                                        <span className="font-black text-xs text-foreground">Envío a Domicilio</span>
+                                        <span className="text-[8px] text-muted-foreground font-bold uppercase tracking-wider">Delivery</span>
+                                    </button>
+                                </div>
+
                                 <div className="space-y-4">
                                     <div className="relative">
                                         <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -815,6 +850,17 @@ function TenantCatalogoClient() {
                                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCustomerData(prev => ({ ...prev, telefono: e.target.value }))}
                                         />
                                     </div>
+                                    {tipoEntrega === 'envio_domicilio' && (
+                                        <div className="relative">
+                                            <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                            <Input
+                                                placeholder="Dirección de entrega"
+                                                className="pl-12 bg-muted border-none text-foreground focus:ring-primary h-14 rounded-2xl font-bold"
+                                                value={deliveryAddress}
+                                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDeliveryAddress(e.target.value)}
+                                            />
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="bg-muted p-6 rounded-3xl border border-border space-y-3">

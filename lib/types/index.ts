@@ -392,6 +392,10 @@ export interface OnlineOrderItem {
     notas?: string;
 }
 
+export type FulfillmentType = 'retiro_tienda' | 'envio_domicilio';
+
+export type OnlineOrderStatus = 'pendiente' | 'preparado' | 'cancelado' | 'finalizado' | 'pendiente_retiro' | 'listo_para_retirar' | 'retirado';
+
 export interface OnlineOrder {
     id: string;
     tenantId: string;
@@ -399,9 +403,11 @@ export interface OnlineOrder {
     cliente_telefono: string;
     items: OnlineOrderItem[];
     total: number;
-    estado: 'pendiente' | 'preparado' | 'cancelado' | 'finalizado'; // Keeping existing for now or migrate later
+    estado: OnlineOrderStatus;
+    tipo_entrega: FulfillmentType;
+    direccion_entrega?: string;
     mensaje_whatsapp?: string;
-    metodo_pago?: 'transfer' | 'mercadopago';
+    metodo_pago?: 'transfer' | 'mercadopago' | 'astropay';
     comprobante_url?: string;
     pago_confirmado?: boolean;
     pago_id?: string;
@@ -471,6 +477,39 @@ export interface DeliveryDriver {
     activo: boolean; // Present today?
     created_at: Timestamp;
     updated_at: Timestamp;
+}
+
+// ============================================
+// RETURNS (BORIS - Buy Online, Return In Store)
+// ============================================
+
+export type ReturnReason = 'producto_defectuoso' | 'producto_incorrecto' | 'cambio_de_opinion' | 'vencimiento' | 'otro';
+
+export interface ReturnItem {
+    producto_id: string;
+    producto_nombre: string;
+    cantidad: number;
+    precio_unitario: number;
+    subtotal: number;
+    motivo: ReturnReason;
+    descripcion?: string;
+}
+
+export interface StoreReturn {
+    id: string;
+    tenantId: string;
+    tipo_origen: 'online_order' | 'in_store_sale';
+    orden_original_id: string;
+    cliente_nombre: string;
+    cliente_telefono?: string;
+    items: ReturnItem[];
+    subtotal: number;
+    total: number;
+    metodo_reembolso: 'efectivo' | 'mismo_metodo' | 'credito_tienda';
+    estado: 'pendiente' | 'aprobado' | 'rechazado';
+    usuario_id: string;
+    fecha: Timestamp;
+    notas?: string;
 }
 
 // ============================================

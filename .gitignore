@@ -59,3 +59,14 @@ Thumbs.db
 
 # Lock file DESCOMENTADO para reproducibilidad
 !package-lock.json
+
+# Certificados AFIP y propuestas comerciales (no son código fuente)
+*.crt
+*.csr
+*.cer
+# Nota: *.key, *.pfx, *.p12 ya están excluidos arriba
+
+# PDFs de propuestas comerciales
+Propuesta*.pdf
+*Propuesta*.pdf
+PROPUESTA*.md
