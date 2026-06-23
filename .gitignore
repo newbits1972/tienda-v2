@@ -70,3 +70,6 @@ Thumbs.db
 Propuesta*.pdf
 *Propuesta*.pdf
 PROPUESTA*.md
+
+# Excluir archivo temporal nul de Windows
+nul
