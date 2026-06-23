@@ -33,7 +33,7 @@ export const RegisterCloseReceipt = forwardRef<HTMLDivElement, RegisterCloseRece
             >
                 <div className="text-center border-b-2 border-black pb-2 mb-2">
                     <h1 className="text-lg font-bold uppercase">Cierre de Caja</h1>
-                    <p className="text-xs">DataSense Food</p>
+                    <p className="text-xs">DataSense Retail</p>
                 </div>
 
                 <div className="text-xs mb-4">

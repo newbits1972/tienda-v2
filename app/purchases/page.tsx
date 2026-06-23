@@ -247,7 +247,7 @@ export default function PurchasesPage() {
                                 </div>
                                 <div className="space-y-1">
                                     <Label className="text-xs">
-                                        Cant. {currentItemId && `(${products.find(p => p.id === currentItemId)?.unidad || (products.find(p => p.id === currentItemId)?.es_pesable ? 'kg' : 'un.')})`}
+                                        Cant. {currentItemId && '(un.)'}
                                     </Label>
                                     <Input
                                         type="number"
@@ -287,7 +287,7 @@ export default function PurchasesPage() {
                                             <tr key={idx} className="border-b border-accent/10">
                                                 <td className="py-2">{p?.nombre}</td>
                                                 <td className="py-2 text-center text-xs">
-                                                    {item.quantity} {p?.unidad || (p?.es_pesable ? 'kg' : 'un.')}
+                                                    {item.quantity} un.
                                                 </td>
                                                 <td className="py-2 text-right">{formatCurrency(item.cost)}</td>
                                                 <td className="py-2 text-right font-semibold">

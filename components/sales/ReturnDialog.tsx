@@ -32,7 +32,7 @@ const reasonLabels: Record<ReturnReason, string> = {
     producto_defectuoso: 'Producto defectuoso',
     producto_incorrecto: 'Producto incorrecto',
     cambio_de_opinion: 'Cambio de opinión',
-    vencimiento: 'Vencimiento',
+    talle_incorrecto: 'Talle incorrecto',
     otro: 'Otro',
 };
 

@@ -23,14 +23,18 @@ export async function createPreference(
     const mpItems = items.map(item => {
         // Handle both OnlineOrderItem and CartItem formats
         const product = item.producto;
+        const variant = item.variante;
         const quantity = item.cantidad || 1;
-        const subtotal = item.subtotal || (product?.precio_venta * quantity);
+        const baseUnit = variant?.precio_venta ?? product?.precio_venta ?? 0;
+        const subtotal = item.subtotal || (baseUnit * quantity);
+        const unitPrice = subtotal / quantity;
 
-        const unitPrice = product?.es_pesable ? subtotal : (subtotal / quantity);
+        const titleParts = [product?.nombre || 'Producto'];
+        if (variant) titleParts.push(`(${variant.talle}/${variant.color})`);
 
         return {
-            id: product?.id || 'id-desconocido',
-            title: product?.nombre || 'Producto',
+            id: variant?.sku || product?.id || 'id-desconocido',
+            title: titleParts.join(' '),
             unit_price: Number(unitPrice.toFixed(2)),
             quantity: Number(quantity),
             currency_id: 'ARS'
@@ -77,7 +81,7 @@ export async function createQROrder(accessToken: string, tenantId: string, total
         producto: {
             id: 'pos-sale',
             nombre: description,
-            es_pesable: false,
+            precio_venta: totalAmount,
         },
         cantidad: 1,
         subtotal: totalAmount

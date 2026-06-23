@@ -259,14 +259,14 @@ export default function DashboardPage() {
                                     <div>
                                         <p className="font-medium">{item.product.nombre}</p>
                                         <p className="text-sm text-muted-foreground">
-                                            {item.quantity} {item.product.unidad}
+                                            {item.quantity} un.
                                         </p>
                                     </div>
                                 </div>
                                 <div className="text-right">
                                     <p className="font-semibold text-primary">{formatCurrency(item.revenue)}</p>
                                     <p className="text-sm text-muted-foreground">
-                                        {formatCurrency(item.revenue / item.quantity)}/{item.product.unidad}
+                                        {formatCurrency(item.revenue / item.quantity)}/un.
                                     </p>
                                 </div>
                             </div>
@@ -292,9 +292,9 @@ export default function DashboardPage() {
                                 <div>
                                     <p className="font-medium">{product.nombre}</p>
                                     <p className="text-xs text-muted-foreground">
-                                        Stock actual: <span className="text-red-400 font-bold">{product.stock_actual ?? '-'} {product.es_pesable ? 'kg' : 'un.'}</span>
+                                        Stock actual: <span className="text-red-400 font-bold">{product.stock_actual ?? '-'}</span> un.
                                         <span className="mx-2">•</span>
-                                        Mínimo: {product.stock_minimo ?? 0} {product.es_pesable ? 'kg' : 'un.'}
+                                        Mínimo: {product.stock_minimo ?? 0} un.
                                     </p>
                                 </div>
                                 <Badge variant="destructive" className="bg-red-500/20 text-red-500 border-red-500/20">Crítico</Badge>

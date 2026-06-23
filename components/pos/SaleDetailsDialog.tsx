@@ -90,11 +90,13 @@ export function SaleDetailsDialog({ sale, customer, isOpen, onClose }: SaleDetai
                                     <div>
                                         <p className="text-sm font-medium text-foreground">{item.producto.nombre}</p>
                                         <p className="text-xs text-muted-foreground">
-                                            {item.producto.es_pesable
-                                                ? `${((item.peso_gramos || 0) / 1000).toFixed(3)}kg x ${formatCurrency(item.producto.precio_venta)}`
-                                                : `${item.cantidad} un. x ${formatCurrency(item.producto.precio_venta)}`
-                                            }
+                                            {item.cantidad} un. x {formatCurrency(item.variante?.precio_venta ?? item.producto.precio_venta)}
                                         </p>
+                                        {item.variante && (
+                                            <p className="text-[10px] text-muted-foreground">
+                                                {item.variante.color} · Talle {item.variante.talle}
+                                            </p>
+                                        )}
                                     </div>
                                     <p className="font-bold text-foreground">{formatCurrency(item.subtotal)}</p>
                                 </div>

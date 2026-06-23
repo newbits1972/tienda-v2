@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useCart } from '@/hooks/useCart';
-import { formatCurrency, formatWeight } from '@/lib/utils';
+import { formatCurrency } from '@/lib/utils';
 import { CartItem } from './CartItem';
 
 function ShoppingCartComponent() {

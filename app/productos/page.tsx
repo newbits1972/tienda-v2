@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { collection, onSnapshot, query, addDoc, updateDoc, doc, Timestamp, deleteDoc, where, writeBatch, getDocs } from 'firebase/firestore';
-import { Package, Plus, Search, Edit, Trash2, TrendingUp, AlertTriangle, Upload, Sparkles, Layers } from 'lucide-react';
+import { Package, Plus, Search, Edit, Trash2, TrendingUp, AlertTriangle, Upload, Sparkles } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -293,11 +293,11 @@ export default function CartaPage() {
                                                     {product.es_destacado && <Sparkles className="w-4 h-4 text-gold fill-gold" />}
                                                 </div>
                                                 <div className="flex flex-wrap gap-1">
-                                                    {product.es_pesable && <Badge variant="secondary" className="text-[9px] h-4">PESABLE</Badge>}
-                                                    {product.receta && product.receta.length > 0 && (
-                                                        <Badge className="bg-gold/10 text-gold border-gold/20 text-[9px] h-4 flex items-center gap-1">
-                                                            <Layers className="w-3 h-3" />
-                                                            COMBO/PACK
+                                                    {product.marca && <Badge variant="secondary" className="text-[9px] h-4">{product.marca}</Badge>}
+                                                    {product.temporada && <Badge variant="outline" className="text-[9px] h-4">{product.temporada}</Badge>}
+                                                    {(product.talles_disponibles?.length || 0) > 0 && (
+                                                        <Badge variant="outline" className="text-[9px] h-4">
+                                                            {product.talles_disponibles!.length} talles
                                                         </Badge>
                                                     )}
                                                 </div>
@@ -318,7 +318,6 @@ export default function CartaPage() {
                                                 ) : (
                                                     <span className="text-xl font-black text-gold">{formatCurrency(product.precio_venta)}</span>
                                                 )}
-                                                <span className="text-[10px] text-zinc-600 font-bold uppercase">/ {product.unidad}</span>
                                             </div>
                                         </td>
                                         <td className="p-3 text-right">
@@ -326,7 +325,7 @@ export default function CartaPage() {
                                                 <span className={`text-lg font-bold ${product.stock_controlado && product.stock_actual !== undefined && product.stock_actual !== null && product.stock_actual <= product.stock_minimo ? 'text-red-500' : 'text-zinc-300'}`}>
                                                     {product.stock_actual !== undefined && product.stock_actual !== null ? product.stock_actual : '-'}
                                                 </span>
-                                                <span className="text-[10px] text-zinc-600 uppercase font-black">{product.unidad}</span>
+                                                <span className="text-[10px] text-zinc-600 uppercase font-black">un.</span>
                                                 {product.stock_controlado && product.stock_actual !== undefined && product.stock_actual !== null && product.stock_actual <= product.stock_minimo && (
                                                     <Badge variant="destructive" className="text-[8px] py-0 px-1 mt-1">STOCK BAJO</Badge>
                                                 )}
@@ -366,15 +365,6 @@ export default function CartaPage() {
                                                     <Button
                                                         variant="ghost"
                                                         size="icon"
-                                                        className="h-9 w-9 text-zinc-500 hover:text-gold hover:bg-gold/10"
-                                                        onClick={() => router.push(`/carta/${product.id}/receta`)}
-                                                        title="Configurar Composición"
-                                                    >
-                                                        <Layers className="w-4 h-4" />
-                                                    </Button>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
                                                         className="h-9 w-9 text-zinc-500 hover:text-red-500 hover:bg-red-500/10"
                                                         onClick={() => handleDelete(product.id)}
                                                     >
@@ -401,7 +391,6 @@ export default function CartaPage() {
             <BulkImportDialog
                 isOpen={isBulkImportOpen}
                 onClose={() => setIsBulkImportOpen(false)}
-                defaultType="producto"
             />
 
             <PriceUpdateDialog

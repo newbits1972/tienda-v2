@@ -83,8 +83,7 @@ export default function SocialMediaHub() {
                 const q = query(
                     collection(db, 'products'),
                     where('tenantId', '==', tenantId),
-                    where('activo', '==', true),
-                    where('tipo', '==', 'producto')
+                    where('activo', '==', true)
                 );
 
                 const querySnapshot = await getDocs(q);
@@ -424,7 +423,7 @@ export default function SocialMediaHub() {
                                             </div>
                                         ) : (
                                             <span className="bg-[#FFBC0D] text-black px-6 py-2 text-xs uppercase font-black tracking-[0.2em] rounded-full shadow-lg whitespace-nowrap">
-                                                {config?.nombre || 'DataSense Food'}
+                                                {config?.nombre || 'DataSense Retail'}
                                             </span>
                                         )}
                                     </div>

@@ -132,7 +132,7 @@ export default function ReportsPage() {
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
                 <div>
                     <h1 className="text-3xl font-bold mb-1">Reportes y Estadísticas</h1>
-                    <p className="text-muted-foreground">Análisis detallado de tu negocio en DataSense Food</p>
+                    <p className="text-muted-foreground">Análisis detallado de tu negocio en DataSense Retail</p>
                 </div>
                 <div className="flex items-center gap-2">
                     <Select value={dateRange} onValueChange={(v: any) => setDateRange(v)}>
@@ -337,9 +337,9 @@ export default function ReportsPage() {
                                         <div>
                                             <p className="font-medium text-foreground">{product.nombre}</p>
                                             <p className="text-xs text-muted-foreground">
-                                                Stock actual: <span className="text-red-400 font-bold">{product.stock_actual ?? '-'} {product.es_pesable ? 'kg' : 'un.'}</span>
+                                                Stock actual: <span className="text-red-400 font-bold">{product.stock_actual ?? '-'}</span> un.
                                                 <span className="mx-2">•</span>
-                                                Mínimo: {product.stock_minimo ?? 0} {product.es_pesable ? 'kg' : 'un.'}
+                                                Mínimo: {product.stock_minimo ?? 0} un.
                                             </p>
                                         </div>
                                         <Badge variant="destructive">Critico</Badge>

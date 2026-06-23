@@ -27,12 +27,14 @@ service cloud.firestore {
       allow write: if isSuperAdmin();
     }
 
+    // Catálogo retail (producto padre)
     match /products/{productId} {
       allow read: if isTenant(resource.data.tenantId) || isTenant(request.resource.data.tenantId);
       allow write: if isTenant(request.resource.data.tenantId);
     }
 
-    match /orders/{orderId} {
+    // Matriz talle×color (variantes del producto)
+    match /product_variants/{variantId} {
       allow read: if isTenant(resource.data.tenantId) || isTenant(request.resource.data.tenantId);
       allow write: if isTenant(request.resource.data.tenantId);
     }
@@ -43,6 +45,11 @@ service cloud.firestore {
     }
 
     match /customers/{customerId} {
+      allow read: if isTenant(resource.data.tenantId) || isTenant(request.resource.data.tenantId);
+      allow write: if isTenant(request.resource.data.tenantId);
+    }
+
+    match /suppliers/{supplierId} {
       allow read: if isTenant(resource.data.tenantId) || isTenant(request.resource.data.tenantId);
       allow write: if isTenant(request.resource.data.tenantId);
     }
@@ -59,6 +66,47 @@ service cloud.firestore {
     
     match /cash_registers/{registerId} {
       allow read, write: if isTenant(resource.data.tenantId) || isTenant(request.resource.data.tenantId);
+    }
+
+    // Multi-sucursal
+    match /branches/{branchId} {
+      allow read, write: if isTenant(resource.data.tenantId) || isTenant(request.resource.data.tenantId);
+    }
+
+    // Transferencias entre sucursales
+    match /transfers/{transferId} {
+      allow read, write: if isTenant(resource.data.tenantId) || isTenant(request.resource.data.tenantId);
+    }
+
+    // Audit trail de stock
+    match /stock_movements/{movementId} {
+      allow read, write: if isTenant(resource.data.tenantId) || isTenant(request.resource.data.tenantId);
+    }
+
+    // Pedidos online (catálogo propio)
+    match /online_orders/{orderId} {
+      allow read, write: if isTenant(resource.data.tenantId) || isTenant(request.resource.data.tenantId);
+    }
+
+    // Devoluciones BORIS
+    match /store_returns/{returnId} {
+      allow read, write: if isTenant(resource.data.tenantId) || isTenant(request.resource.data.tenantId);
+    }
+
+    // Devoluciones a proveedor
+    match /merchandise_returns/{returnId} {
+      allow read, write: if isTenant(resource.data.tenantId) || isTenant(request.resource.data.tenantId);
+    }
+
+    // Facturas / comprobantes fiscales
+    match /invoices/{invoiceId} {
+      allow read, write: if isTenant(resource.data.tenantId) || isTenant(request.resource.data.tenantId);
+    }
+
+    // Certificados AFIP (datos sensibles — solo superadmin por security)
+    match /afip_certificates/{tenantId} {
+      allow read: if isTenant(resource.data.tenantId) || isTenant(request.resource.data.tenantId);
+      allow write: if isSuperAdmin() || isTenant(request.resource.data.tenantId);
     }
   }
 }

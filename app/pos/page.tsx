@@ -1,15 +1,13 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { collection, onSnapshot, query, where, setDoc, Timestamp, doc, runTransaction, getDoc, orderBy, limit, updateDoc, increment, getDocs } from 'firebase/firestore';
+import { collection, onSnapshot, query, where, Timestamp, doc, runTransaction, getDoc, orderBy, limit, updateDoc, getDocs } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
-import { ShoppingBag, DollarSign, Keyboard, Bell, History, Eye, Search, Tag, Package, Store, RotateCcw } from 'lucide-react';
+import { DollarSign, Keyboard, Store, RotateCcw, Search, Package } from 'lucide-react';
 import { ShoppingCart } from '@/components/pos/ShoppingCart';
-import { WeighableModal } from '@/components/pos/WeighableModal';
 import { CheckoutDialog } from '@/components/pos/CheckoutDialog';
 import { RegisterCloseDialog } from '@/components/pos/RegisterCloseDialog';
 import { RegisterOpenDialog } from '@/components/pos/RegisterOpenDialog';
-import { PendingOrdersDialog } from '@/components/pos/PendingOrdersDialog';
 import { PickupPanel } from '@/components/pos/PickupPanel';
 import { ReturnDialog } from '@/components/sales/ReturnDialog';
 import {
@@ -19,42 +17,38 @@ import {
     DialogTitle as UIDialogTitle,
     DialogDescription as UIDialogDescription,
 } from '@/components/ui/dialog';
-import { SaleDetailsDialog } from '@/components/pos/SaleDetailsDialog';
-import { ProductSelectorDialog } from '@/components/pos/ProductSelectorDialog';
-import { QuickAccessGrid } from '@/components/pos/QuickAccessGrid';
-import { Product, Customer, PaymentMethod, InvoiceType, Sale, Invoice, CashRegister, OnlineOrder, Order, OrderType } from '@/lib/types';
+import { Product, Customer, PaymentMethod, InvoiceType, Sale, Invoice, CashRegister, OnlineOrder } from '@/lib/types';
 import { useBranding } from '@/contexts/BrandingContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { useReactToPrint } from 'react-to-print';
-import { startOfDay } from 'date-fns';
 import { useCart } from '@/hooks/useCart';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTenant } from '@/hooks/useTenant';
 import { db } from '@/lib/firebase/config';
-import { formatCurrency, toDate, cleanUndefined, cn } from '@/lib/utils';
+import { formatCurrency, cleanUndefined, cn } from '@/lib/utils';
 import { generateCAE, getNextInvoiceNumber, calculateIVADetails } from '@/lib/fiscal/afipService';
 import { useAfipInvoice } from '@/lib/hooks/useAfipInvoice';
 import { ThermalReceipt } from '@/components/fiscal/ThermalReceipt';
+import { VariantSelectorDialog } from '@/components/pos/VariantSelectorDialog';
+import { QuickAccessGrid } from '@/components/pos/QuickAccessGrid';
 import { toast } from 'sonner';
 
 const DEFAULT_BUSINESS_DATA = {
-    nombre: 'DataSense Tienda',
+    nombre: 'DataSense Retail',
     cuit: '20-30456789-5',
     direccion: 'Av. Corrientes 1234, CABA',
     telefono: '011 4455-6677',
     puntoVenta: 1
 };
 
-// Force rebuild
+
 export default function POSPage() {
     const [products, setProducts] = useState<Product[]>([]);
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [dailySales, setDailySales] = useState<Sale[]>([]);
-    const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-    const [isWeighModalOpen, setIsWeighModalOpen] = useState(false);
     const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
     const [isRegisterCloseOpen, setIsRegisterCloseOpen] = useState(false);
     const [isRegisterOpenDialogOpen, setIsRegisterOpenDialogOpen] = useState(false);
@@ -64,28 +58,18 @@ export default function POSPage() {
     const [loading, setLoading] = useState(false);
     const [businessData, setBusinessData] = useState(DEFAULT_BUSINESS_DATA);
     const [pendingOrders, setPendingOrders] = useState<OnlineOrder[]>([]);
-    const [isPendingOrdersOpen, setIsPendingOrdersOpen] = useState(false);
     const [isPickupOpen, setIsPickupOpen] = useState(false);
     const [isReturnOpen, setIsReturnOpen] = useState(false);
-    const [recentSales, setRecentSales] = useState<Sale[]>([]);
-    const [selectedSaleForDetails, setSelectedSaleForDetails] = useState<Sale | null>(null);
-    const [isDetailsOpen, setIsDetailsOpen] = useState(false);
-    const [isProductSelectorOpen, setIsProductSelectorOpen] = useState(false);
-    const [selectedProductForSelector, setSelectedProductForSelector] = useState<Product | null>(null);
+    const [isVariantSelectorOpen, setIsVariantSelectorOpen] = useState(false);
+    const [selectedProductForVariant, setSelectedProductForVariant] = useState<Product | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
-
-    // Retail States
-    const [orderType, setOrderType] = useState<'local' | 'envio' | 'retiro'>('local');
-    const [deliveryAddress, setDeliveryAddress] = useState('');
-    const [orderNotes, setOrderNotes] = useState('');
-    const [selectedCustomerForOrder, setSelectedCustomerForOrder] = useState<Customer | null>(null);
 
     const { user } = useAuth();
     const { tenantId } = useTenant();
     const { config } = useBranding();
     const { items, addItem, getTotal, clearCart } = useCart();
 
-    // Memoize total to prevent re-renders in children when other state changes (like shortcuts)
+    // Memoize total to prevent re-renders in children when other state changes
     const total = React.useMemo(() => items.reduce((sum, item) => sum + item.subtotal, 0), [items]);
 
     const receiptRef = useRef<HTMLDivElement>(null);
@@ -96,25 +80,17 @@ export default function POSPage() {
         onAfterPrint: () => setLastSaleData(null),
     });
 
-
-    // Load products in real-time
-    // Load products in real-time
     // Load products in real-time
     useEffect(() => {
         let q;
         if (user?.rol === 'superadmin') {
-            q = query(
-                collection(db, 'products'),
-                where('activo', '==', true),
-                where('tipo', '==', 'producto')
-            );
+            q = query(collection(db, 'products'), where('activo', '==', true));
         } else {
             if (!tenantId) return;
             q = query(
                 collection(db, 'products'),
                 where('tenantId', '==', tenantId),
-                where('activo', '==', true),
-                where('tipo', '==', 'producto')
+                where('activo', '==', true)
             );
         }
 
@@ -133,10 +109,7 @@ export default function POSPage() {
     useEffect(() => {
         let q;
         if (user?.rol === 'superadmin') {
-            q = query(
-                collection(db, 'customers'),
-                where('activo', '==', true)
-            );
+            q = query(collection(db, 'customers'), where('activo', '==', true));
         } else {
             if (!tenantId) return;
             q = query(
@@ -206,7 +179,7 @@ export default function POSPage() {
         return () => unsubscribe();
     }, [user]);
 
-    // Listen for Pending Online Orders
+    // Listen for Pending Online Orders (BOPIS / retiro en tienda)
     useEffect(() => {
         if (!tenantId) return;
         const q = query(
@@ -238,14 +211,12 @@ export default function POSPage() {
                 id: doc.id,
             })) as OnlineOrder[];
 
-            // Sort locally to avoid Firebase Index requirement
             const sortedOrders = ordersData.sort((a, b) => {
                 const dateA = a.fecha?.seconds || 0;
                 const dateB = b.fecha?.seconds || 0;
                 return dateB - dateA;
             });
 
-            // Play sound if a new order arrives
             if (snapshot.docChanges().some(change => change.type === 'added') && sortedOrders.length > 0) {
                 playNotificationSound();
             }
@@ -258,71 +229,14 @@ export default function POSPage() {
         return () => unsubscribe();
     }, []);
 
-    useEffect(() => {
-        if (!tenantId) return;
-
-        const q = query(
-            collection(db, 'sales'),
-            where('tenantId', '==', tenantId),
-            orderBy('fecha', 'desc'),
-            limit(10)
-        );
-
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            const salesData = snapshot.docs.map(doc => ({
-                ...doc.data(),
-                id: doc.id,
-            })) as Sale[];
-            setRecentSales(salesData);
-        }, (error) => {
-            console.error("Recent sales listener error:", error);
-        });
-
-        return () => unsubscribe();
-    }, []);
-
-    /* Mesas desactivadas para Retail
-    useEffect(() => {
-        if (!tenantId) return;
-
-        const q = query(
-            collection(db, 'tables'),
-            where('tenantId', '==', tenantId)
-        );
-
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            const tablesData = snapshot.docs.map(doc => ({
-                ...doc.data(),
-                id: doc.id
-            })) as Table[];
-            setTables(tablesData.sort((a, b) => a.numero - b.numero));
-        });
-
-        return () => unsubscribe();
-    }, [tenantId]);
-    */
-
-
     const handleLoadOnlineOrder = async (order: OnlineOrder) => {
         try {
-            // Add items to cart with full details
             for (const item of order.items) {
-                addItem(
-                    item.producto,
-                    item.cantidad,
-                    undefined,
-                    item.selectedVariants,
-                    item.selectedExtras,
-                    item.notas
-                );
+                addItem(item.producto, item.variante, item.cantidad);
             }
-
-            // Mark as prepared/processing (locally for now, or update DB)
             await updateDoc(doc(db, 'online_orders', order.id), {
                 estado: 'preparado'
             });
-
-            setIsPendingOrdersOpen(false);
         } catch (error) {
             console.error("Error loading order:", error);
         }
@@ -361,49 +275,31 @@ export default function POSPage() {
         'F1': () => setShowHotkeys(!showHotkeys),
         'F2': () => setIsRegisterCloseOpen(true),
         'F8': handleMainAction,
-        'Escape': () => {
-            setIsWeighModalOpen(false);
-            setIsCheckoutOpen(false);
-        },
+        'Escape': () => setIsCheckoutOpen(false),
     });
 
-    const handleProductScanned = React.useCallback((product: Product, weight?: number) => {
-        if (product.es_pesable && weight) {
-            addItem(product, 1, weight);
-        } else if (!product.es_pesable) {
-            // Check for variants or extras
-            if ((product.variantes && product.variantes.length > 0) || (product.extras && product.extras.length > 0)) {
-                setSelectedProductForSelector(product);
-                setIsProductSelectorOpen(true);
-            } else {
-                addItem(product, 1);
-            }
-        }
-    }, [addItem]);
+    /**
+     * Cuando se clickea un producto en la grilla:
+     * - Si tiene matriz talle×color definida → abre selector de variante
+     * - Si no → agrega directo (productos sin variantes)
+     */
+    const handleProductClick = (product: Product) => {
+        const tieneMatriz = (product.talles_disponibles && product.talles_disponibles.length > 0)
+            || (product.colores_disponibles && product.colores_disponibles.length > 0);
 
-    const handleProductSelectorConfirm = (
-        product: Product,
-        quantity: number,
-        variants: any,
-        extras: any,
-        notes: string
-    ) => {
-        addItem(product, quantity, undefined, variants, extras, notes);
-        setIsProductSelectorOpen(false);
-        setSelectedProductForSelector(null);
-    };
-
-    const handleOpenWeighModal = React.useCallback((product: Product) => {
-        setSelectedProduct(product);
-        setIsWeighModalOpen(true);
-    }, []);
-
-    const handleWeighConfirm = (weight: number) => {
-        if (selectedProduct) {
-            addItem(selectedProduct, 1, weight);
+        if (tieneMatriz) {
+            setSelectedProductForVariant(product);
+            setIsVariantSelectorOpen(true);
+        } else {
+            addItem(product, undefined, 1);
         }
     };
 
+    const handleVariantSelected = (product: Product, variant: any) => {
+        addItem(product, variant, 1);
+        setIsVariantSelectorOpen(false);
+        setSelectedProductForVariant(null);
+    };
 
     const handleCheckout = async (
         paymentMethod: PaymentMethod,
@@ -413,9 +309,7 @@ export default function POSPage() {
         setLoading(true);
         try {
             let invoiceData: Invoice | undefined;
-            // Prepare Sale and optionally Invoice
 
-            // Prepare Sale and optionally Invoice
             await runTransaction(db, async (transaction) => {
                 const saleRef = doc(collection(db, 'sales'));
                 const salesId = saleRef.id;
@@ -433,31 +327,21 @@ export default function POSPage() {
                 // 2. CALCULATE AND PREPARE WRITES
                 const updates: (() => void)[] = [];
 
-                // Stock Updates Prep
+                // Stock Updates Prep — descuenta del producto padre (agregado).
+                // El stock por variante/sucursal se gestiona en una transacción aparte
+                // (ver Fase 1.5 — stock_by_branch). Por ahora mantenemos la compatibilidad
+                // con el stock_actual del producto padre.
                 items.forEach((item, index) => {
                     const productDoc = productDocs[index];
                     if (!productDoc.exists()) throw new Error(`Producto ${item.producto.nombre} no encontrado`);
 
                     const currentStock = productDoc.data().stock_actual || 0;
-                    const reduction = item.producto.es_pesable ? (item.peso_gramos || 0) / 1000 : item.cantidad;
+                    const reduction = item.cantidad;
 
                     updates.push(() => transaction.update(productRefs[index], {
                         stock_actual: currentStock - reduction,
                         updated_at: Timestamp.now()
                     }));
-
-                    // RECIPE DEDUCTION
-                    if (item.producto.receta && item.producto.receta.length > 0) {
-                        const recipeMultiplier = item.cantidad;
-                        item.producto.receta.forEach((ingredient: any) => {
-                            const totalIngredientUsed = ingredient.cantidad * recipeMultiplier;
-                            const ingredientRef = doc(db, 'products', ingredient.materia_prima_id);
-                            updates.push(() => transaction.update(ingredientRef, {
-                                stock_actual: increment(-totalIngredientUsed),
-                                updated_at: Timestamp.now()
-                            }));
-                        });
-                    }
                 });
 
                 // Customer CC Update Prep
@@ -497,7 +381,6 @@ export default function POSPage() {
                             vencimiento: new Date(afipResult.cae_vencimiento || new Date())
                         };
                     } catch (afipError: any) {
-                        // If AFIP fails, abort transaction
                         throw new Error('AFIP: ' + afipError.message);
                     }
 
@@ -524,6 +407,7 @@ export default function POSPage() {
                 const saleRecord: Sale = {
                     id: salesId,
                     tenantId: tenantId!,
+                    branch_id: user?.branch_id || undefined,
                     items: [...items],
                     total: total,
                     metodo_pago: paymentMethod,
@@ -536,35 +420,11 @@ export default function POSPage() {
                     numero_comprobante: invoiceNumber ? `${businessData.puntoVenta.toString().padStart(4, '0')}-${invoiceNumber.toString().padStart(8, '0')}` : null as any
                 };
 
-                // HANDLE ORDER
-                const orderRef = doc(collection(db, 'orders'));
-                const finalOrder: Order = {
-                    id: orderRef.id,
-                    tenantId: tenantId!,
-                    type: orderType as any,
-                    status: 'completed',
-                    items: [...items],
-                    total: total,
-                    cliente_id: customerId || null,
-                    cliente_nombre: customers.find(c => c.id === customerId)?.nombre || null,
-                    cliente_telefono: customers.find(c => c.id === customerId)?.telefono || null,
-                    direccion_entrega: deliveryAddress,
-                    usuario_id: user?.id || 'unknown',
-                    pagado: true,
-                    fecha: Timestamp.now(),
-                    updated_at: Timestamp.now(),
-                    notas: orderNotes
-                };
-
                 transaction.set(saleRef, cleanUndefined(saleRecord));
-                transaction.set(orderRef, cleanUndefined(finalOrder));
-
                 setLastSaleData({ sale: saleRecord, invoice: invoiceData });
             });
 
             clearCart();
-            setOrderNotes('');
-            setDeliveryAddress('');
             setTimeout(async () => {
                 if (window.confirm('¿Desea imprimir el ticket para el CLIENTE?')) handlePrintClient();
                 else setLastSaleData(null);
@@ -577,8 +437,6 @@ export default function POSPage() {
             setLoading(false);
         }
     };
-
-
 
     const getDailySalesSummary = () => {
         return dailySales.reduce((summary, sale) => {
@@ -601,44 +459,19 @@ export default function POSPage() {
         });
     };
 
+    const retiroCount = pendingOrders.filter(o => o.tipo_entrega === 'retiro_tienda' && o.estado !== 'retirado' && o.estado !== 'cancelado').length;
+
     return (
         <div className="min-h-screen bg-background p-4">
             {/* Header */}
             <div className="mb-4 flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold text-primary">DataSense Tienda</h1>
-                    <p className="text-muted-foreground">Sistema de Punto de Venta Retail</p>
-                </div>
-
-                <div className="flex bg-muted p-1 rounded-lg border border-border">
-                    <Button
-                        variant={orderType === 'local' ? 'primary' : 'ghost'}
-                        size="sm"
-                        className={cn("rounded-md px-4", orderType === 'local' && "bg-primary text-primary-foreground")}
-                        onClick={() => setOrderType('local')}
-                    >
-                        Local
-                    </Button>
-                    <Button
-                        variant={orderType === 'envio' ? 'primary' : 'ghost'}
-                        size="sm"
-                        className={cn("rounded-md px-4", orderType === 'envio' && "bg-primary text-primary-foreground")}
-                        onClick={() => setOrderType('envio')}
-                    >
-                        Envío
-                    </Button>
-                    <Button
-                        variant={orderType === 'retiro' ? 'primary' : 'ghost'}
-                        size="sm"
-                        className={cn("rounded-md px-4", orderType === 'retiro' && "bg-primary text-primary-foreground")}
-                        onClick={() => setOrderType('retiro')}
-                    >
-                        Retiro
-                    </Button>
+                    <h1 className="text-3xl font-bold text-primary">{businessData.nombre}</h1>
+                    <p className="text-muted-foreground">Punto de Venta · Indumentaria</p>
                 </div>
 
                 <div className="flex items-center gap-2">
-                    {pendingOrders.filter(o => o.tipo_entrega === 'retiro_tienda' && o.estado !== 'retirado' && o.estado !== 'cancelado').length > 0 && (
+                    {retiroCount > 0 && (
                         <Button
                             variant="outline"
                             size="sm"
@@ -648,7 +481,7 @@ export default function POSPage() {
                             <Store className="w-4 h-4 mr-2" />
                             Retiro
                             <Badge className="ml-1 h-4 min-w-4 text-[9px] bg-green-500 text-white">
-                                {pendingOrders.filter(o => o.tipo_entrega === 'retiro_tienda' && o.estado !== 'retirado' && o.estado !== 'cancelado').length}
+                                {retiroCount}
                             </Badge>
                         </Button>
                     )}
@@ -685,12 +518,12 @@ export default function POSPage() {
                         <CardContent className="p-4 h-full min-h-[400px] flex flex-col">
                             <div className="flex items-center justify-between mb-4 gap-4">
                                 <h3 className="text-sm font-bold text-primary uppercase flex items-center gap-2">
-                                    <Package className="w-4 h-4" /> Acceso Rápido
+                                    <Package className="w-4 h-4" /> Productos
                                 </h3>
                                 <div className="relative flex-1 max-w-xs">
                                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                                     <Input
-                                        placeholder="Buscar producto..."
+                                        placeholder="Buscar por nombre, marca, categoría..."
                                         className="pl-9 h-9 bg-background border-border focus:border-primary"
                                         value={searchTerm}
                                         onChange={(e) => setSearchTerm(e.target.value)}
@@ -700,10 +533,13 @@ export default function POSPage() {
                             <div className="flex-1 overflow-y-auto pr-1">
                                 <QuickAccessGrid
                                     products={searchTerm
-                                        ? products.filter(p => p.nombre.toLowerCase().includes(searchTerm.toLowerCase()) || p.categoria.toLowerCase().includes(searchTerm.toLowerCase()))
+                                        ? products.filter(p =>
+                                            p.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                            (p.marca || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                            p.categoria.toLowerCase().includes(searchTerm.toLowerCase()))
                                         : products
                                     }
-                                    onProductClick={handleProductScanned}
+                                    onProductClick={handleProductClick}
                                     quickAccessIds={searchTerm ? undefined : config?.branding?.quickAccessIds}
                                 />
                             </div>
@@ -745,24 +581,6 @@ export default function POSPage() {
                         Cobrar (F8)
                     </Button>
 
-                    {/* Retail Details Fields */}
-                    <div className="space-y-3 pt-2">
-                        {orderType === 'envio' && (
-                            <Input
-                                placeholder="Dirección de Envío..."
-                                value={deliveryAddress}
-                                onChange={(e) => setDeliveryAddress(e.target.value)}
-                                className="bg-background border-border focus:border-primary"
-                            />
-                        )}
-                        <Input
-                            placeholder="Notas / Observaciones..."
-                            value={orderNotes}
-                            onChange={(e) => setOrderNotes(e.target.value)}
-                            className="bg-background border-border focus:border-primary text-xs"
-                        />
-                    </div>
-
                     <div className="grid grid-cols-2 gap-2">
                         <Button
                             variant="outline"
@@ -794,11 +612,11 @@ export default function POSPage() {
             </div>
 
             {/* Modals */}
-            <WeighableModal
-                product={selectedProduct}
-                isOpen={isWeighModalOpen}
-                onClose={() => setIsWeighModalOpen(false)}
-                onConfirm={handleWeighConfirm}
+            <VariantSelectorDialog
+                isOpen={isVariantSelectorOpen}
+                onClose={() => setIsVariantSelectorOpen(false)}
+                product={selectedProductForVariant}
+                onSelect={handleVariantSelected}
             />
 
             <CheckoutDialog
@@ -819,24 +637,9 @@ export default function POSPage() {
                 cajeroNombre={registerSession?.cajero_nombre}
             />
 
-            <ProductSelectorDialog
-                isOpen={isProductSelectorOpen}
-                onClose={() => setIsProductSelectorOpen(false)}
-                product={selectedProductForSelector}
-                onConfirm={handleProductSelectorConfirm}
-            />
-
             <RegisterOpenDialog
                 isOpen={isRegisterOpenDialogOpen}
                 onOpenSuccess={() => setIsRegisterOpenDialogOpen(false)}
-            />
-
-
-            <PendingOrdersDialog
-                orders={pendingOrders}
-                isOpen={isPendingOrdersOpen}
-                onClose={() => setIsPendingOrdersOpen(false)}
-                onLoadOrder={handleLoadOnlineOrder}
             />
 
             <UIDialog open={isPickupOpen} onOpenChange={setIsPickupOpen}>
@@ -847,7 +650,7 @@ export default function POSPage() {
                             Pedidos para Retirar en Tienda
                         </UIDialogTitle>
                         <UIDialogDescription>
-                            Gestioná los pedidos que los clientes vienen a retirar.
+                            Gestioná los pedidos BOPIS que los clientes vienen a retirar.
                         </UIDialogDescription>
                     </UIDialogHeader>
                     <PickupPanel orders={pendingOrders} />
@@ -857,13 +660,6 @@ export default function POSPage() {
             <ReturnDialog
                 isOpen={isReturnOpen}
                 onClose={() => setIsReturnOpen(false)}
-            />
-
-            <SaleDetailsDialog
-                sale={selectedSaleForDetails}
-                customer={customers.find(c => c.id === selectedSaleForDetails?.cliente_id) || null}
-                isOpen={isDetailsOpen}
-                onClose={() => setIsDetailsOpen(false)}
             />
 
             {/* Hidden Receipts for Printing */}

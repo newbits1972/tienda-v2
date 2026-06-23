@@ -1,6 +1,5 @@
 import { db } from '@/lib/firebase/config';
 import { getStoreConfig } from '@/lib/tenant/configService';
-import { getInvitationEmailTemplate } from '@/lib/mail/templates';
 import {
     collection,
     getDocs,
@@ -91,7 +90,7 @@ export async function createTenant(tenantId: string, nombre: string): Promise<vo
         direccion: '',
         telefono: '',
         whatsapp: '',
-        rubro: 'Fiambrería',
+        rubro: 'Indumentaria',
         active: true,
         created_at: serverTimestamp() as any,
         mercadoPago: {
@@ -181,7 +180,11 @@ export async function provisionAdmin(email: string, nombre: string, tenantId: st
                 to: email,
                 message: {
                     subject: `Invitación de Gestión: ${storeName}`,
-                    html: getInvitationEmailTemplate(nombre, storeName, inviteLink)
+                    html: `<h1>Bienvenido a ${storeName}</h1>
+<p>Hola <strong>${nombre}</strong>,</p>
+<p>Te invitaron a gestionar la tienda <strong>${storeName}</strong> en DataSense Retail.</p>
+<p><a href="${inviteLink}" style="padding:10px 20px;background:#2563eb;color:#fff;border-radius:6px;text-decoration:none;">Aceptar Invitación</a></p>
+<p>Si no esperabas este correo, ignoralo.</p>`
                 },
                 created_at: serverTimestamp()
             });

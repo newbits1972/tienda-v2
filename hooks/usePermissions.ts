@@ -8,14 +8,15 @@ import { useMemo } from 'react';
 const ADMIN_PERMISSIONS: Permission[] = [
     'ventas.crear', 'ventas.ver', 'ventas.anular',
     'productos.crear', 'productos.editar', 'productos.eliminar', 'productos.ver',
+    'variantes.editar',
     'clientes.crear', 'clientes.editar', 'clientes.ver',
     'proveedores.crear', 'proveedores.editar', 'proveedores.ver',
     'compras.crear', 'compras.ver',
+    'transferencias.crear', 'transferencias.recibir', 'transferencias.ver',
     'reportes.ver', 'reportes.exportar',
     'caja.abrir', 'caja.cerrar',
     'configuracion.ver', 'configuracion.editar',
     'usuarios.crear', 'usuarios.editar',
-    'recetas.configurar'
 ];
 
 const CASHIER_PERMISSIONS: Permission[] = [

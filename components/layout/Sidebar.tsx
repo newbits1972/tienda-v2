@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import {
     LayoutDashboard,
     ShoppingCart,
-    Package,
+    Shirt,
     Users,
     TrendingUp,
     Settings,
@@ -16,10 +16,9 @@ import {
     ChevronLeft,
     RotateCcw,
     Globe,
-    ChefHat,
-    Bike,
-    Box,
-    UserCircle,
+    Store,
+    ArrowLeftRight,
+    Tag,
     Sparkles
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -30,16 +29,17 @@ import { Button } from '@/components/ui/button';
 const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Punto de Venta', href: '/pos', icon: ShoppingCart },
-    { name: 'Inventario de Productos', href: '/carta', icon: Package },
+    { name: 'Productos', href: '/productos', icon: Shirt },
     { name: 'Compras', href: '/purchases', icon: TrendingUp },
+    { name: 'Transferencias', href: '/transferencias', icon: ArrowLeftRight, module: 'multi_branch' },
+    { name: 'Etiquetas', href: '/etiquetas', icon: Tag },
     { name: 'Devoluciones', href: '/returns', icon: RotateCcw },
     { name: 'Proveedores', href: '/suppliers', icon: Building2 },
     { name: 'Clientes', href: '/customers', icon: Users },
+    { name: 'Sucursales', href: '/sucursales', icon: Store, module: 'multi_branch' },
     { name: 'Analytics', href: '/analytics', icon: BarChart3 },
     { name: 'Reportes', href: '/reports', icon: BarChart3 },
-    { name: 'Tienda Online', href: '/catalog-settings', icon: Globe },
-    { name: 'Gestión de Envíos', href: '/admin/delivery/dispatcher', icon: Bike, module: 'delivery' },
-    { name: 'Repartidores', href: '/admin/delivery/drivers', icon: Users, module: 'delivery' },
+    { name: 'Tienda Online', href: '/catalog-settings', icon: Globe, module: 'ecommerce' },
     { name: 'Configuración', href: '/settings', icon: Settings },
     { name: 'Marketing Social', href: '/marketing/social', icon: Sparkles },
     { name: 'Roles y Permisos', href: '/roles', icon: Settings },
@@ -148,7 +148,7 @@ export function Sidebar({
                         if (user.rol === 'admin') return true;
 
                         // Cashier restrictions
-                        const allowedForCashier = ['/dashboard', '/pos', '/carta', '/customers', '/settings', '/delivery', '/waiter'];
+                        const allowedForCashier = ['/dashboard', '/pos', '/productos', '/customers', '/settings', '/delivery', '/waiter'];
                         return allowedForCashier.includes(item.href);
                     }).map((item) => {
                         const isActive = pathname === item.href;

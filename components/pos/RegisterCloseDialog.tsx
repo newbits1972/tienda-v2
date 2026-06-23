@@ -103,7 +103,7 @@ export function RegisterCloseDialog({
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2 text-2xl">
                         <Calculator className="w-6 h-6 text-primary" />
-                        Cierre de Caja - DataSense Food
+                        Cierre de Caja - DataSense Retail
                     </DialogTitle>
                     <DialogDescription className="flex items-center justify-between">
                         <span>Resumen de ventas del turno actual y arqueo de efectivo.</span>

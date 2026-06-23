@@ -4,13 +4,14 @@ import "./globals.css";
 import { ContentLayout } from "@/components/layout/ContentLayout";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { BrandingProvider } from "@/contexts/BrandingContext";
+import { BranchProvider } from "@/contexts/BranchContext";
 import { NetworkStatus } from "@/components/ui/NetworkStatus";
 import { Toaster } from "@/components/ui/sonner";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-    title: "DataSense Food - Gestión Gastronómica",
+    title: "DataSense Retail - Gestión de Indumentaria",
     description: "Sistema integral de punto de venta y gestión para gastronomía y delivery",
 };
 
@@ -24,11 +25,13 @@ export default function RootLayout({
             <body className={inter.className}>
                 <AuthProvider>
                     <BrandingProvider>
+                        <BranchProvider>
                         <ContentLayout>
                             <NetworkStatus />
                             {children}
                             <Toaster />
                         </ContentLayout>
+                        </BranchProvider>
                     </BrandingProvider>
                 </AuthProvider>
             </body>

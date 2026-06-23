@@ -79,9 +79,8 @@ export function ProductDialog({ product, open, onOpenChange, defaultType = 'prod
     const isEditing = !!product;
     const [loading, setLoading] = useState(false);
     const [activeTab, setActiveTab] = useState('general');
-
     // Local states for complex fields
-    const [variantes, setVariantes] = useState<ProductVariant[]>([]);
+    const [variantes, setVariantes] = useState<any[]>([]);
     const [extras, setExtras] = useState<ProductExtra[]>([]);
 
     const form = useForm<ProductFormValues>({
@@ -445,7 +444,7 @@ export function ProductDialog({ product, open, onOpenChange, defaultType = 'prod
                                     </div>
 
                                     <div className="space-y-3">
-                                        {variantes.map((v, i) => (
+                                        {variantes.map((v: any, i: number) => (
                                             <div key={i} className="bg-muted/40 p-4 rounded-xl border border-border flex gap-4 items-start">
                                                 <div className="flex-1 space-y-2">
                                                     <Input
@@ -459,7 +458,7 @@ export function ProductDialog({ product, open, onOpenChange, defaultType = 'prod
                                                         className="h-10 font-bold"
                                                     />
                                                     <div className="flex flex-wrap gap-2">
-                                                        {v.opciones.map((opt, oi) => (
+                                                        {v.opciones.map((opt: any, oi: number) => (
                                                             <div key={oi} className="flex items-center gap-2 bg-card p-2 rounded-lg border border-border">
                                                                 <Input
                                                                     value={opt.nombre}
@@ -486,7 +485,7 @@ export function ProductDialog({ product, open, onOpenChange, defaultType = 'prod
                                                                     type="button"
                                                                     onClick={() => {
                                                                         const newV = [...variantes];
-                                                                        newV[i].opciones = v.opciones.filter((_, idx) => idx !== oi);
+                                                                        newV[i].opciones = v.opciones.filter((_: any, idx: number) => idx !== oi);
                                                                         setVariantes(newV);
                                                                     }}
                                                                     className="text-muted-foreground hover:text-red-500"

@@ -36,7 +36,7 @@ const reasonLabels: Record<ReturnReason, string> = {
     producto_defectuoso: 'Producto defectuoso',
     producto_incorrecto: 'Producto incorrecto',
     cambio_de_opinion: 'Cambio de opinión',
-    vencimiento: 'Vencimiento',
+    talle_incorrecto: 'Talle incorrecto',
     otro: 'Otro',
 };
 
@@ -142,7 +142,7 @@ function SupplierReturns() {
             nombre: product.nombre,
             quantity: currentQty,
             cost: product.precio_costo || 0,
-            unidad: product.unidad || (product.es_pesable ? 'kg' : 'un.'),
+            unidad: 'un.',
             motivo: currentReason
         }]);
 

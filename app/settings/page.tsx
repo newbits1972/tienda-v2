@@ -30,7 +30,7 @@ import { db } from '@/lib/firebase/config';
 import { Product } from '@/lib/types';
 
 const DEFAULT_BUSINESS_DATA = {
-    nombre: 'DataSense Food',
+    nombre: 'DataSense Retail',
     cuit: '20-30456789-5',
     direccion: 'Av. Corrientes 1234, CABA',
     telefono: '011 4455-6677',

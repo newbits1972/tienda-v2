@@ -105,23 +105,17 @@ export const ThermalReceipt = forwardRef<HTMLDivElement, ThermalReceiptProps>(
                         <tbody>
                             {sale.items.map((item, index) => {
                                 const isA = invoice?.tipo === 'factura_a';
-                                const unitPrice = isA ? item.producto.precio_venta / 1.21 : item.producto.precio_venta;
+                                const basePrice = item.variante?.precio_venta ?? item.producto.precio_venta;
+                                const unitPrice = isA ? basePrice / 1.21 : basePrice;
                                 const subTotal = isA ? item.subtotal / 1.21 : item.subtotal;
+                                const varianteLabel = item.variante ? ` (${item.variante.talle}/${item.variante.color})` : '';
 
                                 return (
                                     <tr key={index} className="border-b border-dashed border-gray-400">
-                                        <td className="py-1">{item.producto.nombre}</td>
-                                        <td className="text-right">
-                                            {item.producto.es_pesable
-                                                ? `${((item.peso_gramos || 0) / 1000).toFixed(3)}kg`
-                                                : `${item.cantidad} un.`}
-                                        </td>
-                                        <td className="text-right">
-                                            ${unitPrice.toFixed(2)}
-                                        </td>
-                                        <td className="text-right">
-                                            ${subTotal.toFixed(2)}
-                                        </td>
+                                        <td className="py-1">{item.producto.nombre}{varianteLabel}</td>
+                                        <td className="text-right">{item.cantidad} un.</td>
+                                        <td className="text-right">${unitPrice.toFixed(2)}</td>
+                                        <td className="text-right">${subTotal.toFixed(2)}</td>
                                     </tr>
                                 );
                             })}

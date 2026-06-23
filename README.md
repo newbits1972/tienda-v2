@@ -1,28 +1,25 @@
-# DataSense Food - Gestión Gastronómica SaaS
+# DataSense Retail - Gestión de Indumentaria y Comercio Minorista SaaS
 
-Sistema integral de punto de venta y gestión empresarial para comercios en Argentina.
+Sistema integral de punto de venta (POS) y gestión empresarial multi-sucursal y multi-inquilino para comercios de retail en Argentina.
 
 ## 🚀 Características Principales
 
-- **POS (Punto de Venta)** con soporte para productos pesables, escáner de código de barras y Mercado Pago
-- **Facturación AFIP** integrada (Facturas A/B, Ticket con CAE)
-- **Catálogo Online** con retiro en tienda (BOPIS) y envío a domicilio
-- **Devoluciones unificadas (BORIS)** — online y tienda física
-- **Parser EAN-13** para códigos de balanzas
-- **Gestión de Inventario** con recetas, materias primas y actualización masiva de precios
-- **Cuenta Corriente** para clientes
-- **Delivery** — gestión de repartidores y pedidos
-- **Mozo/Mesas** — gestión de pedidos por mesa
-- **Multi-tenancy** — arquitectura SaaS multi-cliente
-- **Analytics** y reportes de ventas
-- **Sincronización en tiempo real** entre terminales
+- **POS (Punto de Venta) Especializado** con soporte para escáneres de códigos de barra y Mercado Pago.
+- **Matriz de Talles y Colores**: Gestión atómica de stock y precios por variantes de tamaño y color.
+- **Facturación AFIP** integrada (Facturas A/B/C, Ticket con CAE y QR legal).
+- **Catálogo Online Público** con retiro en tienda (**BOPIS**) y envío a domicilio.
+- **Devoluciones unificadas (BORIS)**: Devoluciones cruzadas y cambios integrados en local físico para pedidos web y compras físicas.
+- **Multi-Sucursal e Inventario**: Transferencias internas de mercadería con control de "Stock en Tránsito" entre sucursales y depósitos.
+- **Cuentas Corrientes**: Gestión de crédito a clientes con límite parametrizado y registro de cobros.
+- **Etiquetas**: Impresión de códigos de barra por variante para percheros.
+- **Analytics** y reportes avanzados de ventas, ticket promedio y ranking de prendas más vendidas.
 
 ## 🛠️ Stack Tecnológico
 
 - **Framework**: Next.js 16 (App Router)
 - **Lenguaje**: TypeScript
 - **Estilos**: Tailwind CSS 4 + shadcn/ui + Radix UI
-- **Backend**: Firebase (Firestore, Auth, Storage, Functions)
+- **Backend**: Firebase (Firestore, Auth, Storage)
 - **Estado**: Zustand
 - **UI**: Framer Motion, Recharts, Lucide Icons
 
@@ -43,88 +40,67 @@ NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=tu_sender_id
 NEXT_PUBLIC_FIREBASE_APP_ID=tu_app_id
 ```
 
+Iniciar servidor de desarrollo:
+
 ```bash
 npm run dev
 ```
 
-## ⌨️ Atajos de Teclado
+## ⌨️ Atajos de Teclado (POS)
 
-- **F1**: Ayuda
-- **F2**: Cierre de Caja
-- **F8**: Cobrar
-- **ESC**: Cancelar
+- **F1**: Ayuda (Atajos de teclado)
+- **F2**: Cierre de Caja (Arqueo)
+- **F8**: Cobrar / Ir a Checkout
+- **ESC**: Cancelar diálogo
 
 ## 📱 Módulos
 
 ### POS (Punto de Venta)
-- Escaneo de códigos de barras (cámara + lector físico)
-- Soporte para balanzas (EAN-13)
-- Modal de pesaje con teclado numérico
-- Múltiples métodos de pago (efectivo, tarjeta, transferencia, MP, cuenta corriente)
-- Integración AFIP con generación de CAE
+- Escaneo rápido de códigos de barras (SKU / EAN-13).
+- Selector dinámico de variantes (Talle y Color) mediante modal interactivo.
+- Múltiples métodos de pago (efectivo, tarjetas, transferencias, Mercado Pago Point/QR, cuenta corriente).
+- Integración AFIP para generación de comprobantes con CAE en tiempo real.
 
-### Catálogo Online
-- Tienda pública por tenant
-- Carrito de compras con variantes y extras
-- Pago con Mercado Pago, AstroPay o Transferencia Bancaria
-- **BOPIS**: opción de retiro en tienda
-- **BORIS**: devoluciones integradas
+### Tienda Online & Omnicanalidad
+- Tienda pública autogenerada para cada comercio (`/catalogo/[tenantId]`).
+- **BOPIS**: Compra online y retiro físico en la sucursal seleccionada.
+- **BORIS**: Devolución unificada de pedidos online en tienda física con reingreso automático al stock de la sucursal.
 
-### Inventario
-- CRUD de productos con variantes y combos
-- Recetas y materias primas con cálculo de costo de producción
-- Actualización masiva de precios
-- Importación bulk desde CSV
-- Alertas de stock bajo
+### Inventario Multi-Sucursal
+- Maestro de productos con variantes dinámicas.
+- Transferencias documentadas de stock entre sucursales (`/transferencias`).
+- Actualización masiva de precios por categorías o proveedores.
+- Carga de stock y control de stock mínimo con alertas críticas en el Dashboard.
 
-### Clientes
-- Cuenta corriente con límite de crédito
-- Historial de compras
-- Registro de pagos
+### Tesorería y Caja
+- Apertura y cierre de caja ciego para auditar diferencias de efectivo por cajero.
 
-### Delivery
-- Gestión de repartidores
-- Tracking de pedidos en tiempo real
-- Contacto por WhatsApp
-
-### Cocina (Kitchen Display)
-- Visualización de pedidos entrantes
-- Órdenes de comanda térmica
-
-### Analytics
-- Dashboard de ventas
-- Top productos
-- Cierre de caja por método de pago
+---
 
 ## 🏗️ Estructura del Proyecto
 
 ```
-├── app/
-│   ├── pos/              # Punto de venta
-│   ├── catalogo/         # Catálogo online público
-│   ├── pickup/           # Gestión de retiro en tienda
-│   ├── customers/        # Gestión de clientes
-│   ├── delivery/         # Delivery y repartidores
-│   ├── kitchen/          # Display de cocina
-│   ├── returns/          # Devoluciones (proveedores + clientes)
-│   ├── reports/          # Reportes
-│   └── api/              # API Routes (MP, AFIP, AstroPay)
-├── components/
-│   ├── pos/              # Componentes del POS
-│   ├── sales/            # Devoluciones BORIS
+├── app/                  # Rutas de Next.js
+│   ├── pos/              # Punto de venta (POS)
+│   ├── catalogo/         # Catálogo público online por inquilino
+│   ├── pickup/           # Módulo de retiros en tienda (BOPIS)
+│   ├── customers/        # Panel de clientes y Cuenta Corriente
+│   ├── productos/        # Gestión de inventario de productos (antes /carta)
+│   ├── returns/          # Gestión de devoluciones (BORIS)
+│   ├── transferencias/   # Transferencias de stock entre sucursales
+│   └── sucursales/       # ABM de sucursales físicas
+├── components/           # Componentes modulares
+│   ├── pos/              # Componentes de caja y carrito
+│   ├── sales/            # Devoluciones y cambios
 │   ├── shop/             # Catálogo online
-│   ├── fiscal/           # Facturación AFIP
-│   └── ui/               # shadcn/ui
-├── lib/
-│   ├── firebase/         # Configuración Firebase
-│   ├── fiscal/           # Servicios AFIP
-│   ├── payments/         # Mercado Pago
-│   ├── types/            # TypeScript types
-│   └── utils/            # Utilidades
-├── hooks/                # React hooks
-└── contexts/             # React contexts (Auth, Branding)
+│   ├── fiscal/           # Ticketera y firma AFIP
+│   └── ui/               # Base de componentes shadcn/ui
+├── lib/                  # Utilidades y configuración
+│   ├── firebase/         # Configuración y carga semilla (Seed)
+│   ├── fiscal/           # WSAA/WSFE de AFIP
+│   └── types/            # Tipos de TypeScript
 ```
 
 ## 📄 Licencia
 
-Desarrollado para DataSense Food - 2026
+Desarrollado para DataSense Retail - 2026

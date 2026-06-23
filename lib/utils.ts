@@ -16,21 +16,6 @@ export function formatCurrency(amount: number): string {
 }
 
 /**
- * Formats weight in grams to kilograms
- */
-export function formatWeight(grams: number): string {
-    const kg = grams / 1000;
-    return `${kg.toFixed(3)} kg`;
-}
-
-/**
- * Calculates price for weighable items
- */
-export function calculateWeighablePrice(pricePerKg: number, grams: number): number {
-    return (pricePerKg * grams) / 1000;
-}
-
-/**
  * Validates an Argentine CUIT/CUIL
  */
 export function validateCUIT(cuit: string): boolean {
