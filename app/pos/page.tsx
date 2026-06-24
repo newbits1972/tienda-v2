@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/dialog';
 import { Product, Customer, PaymentMethod, InvoiceType, Sale, Invoice, CashRegister, OnlineOrder } from '@/lib/types';
 import { useBranding } from '@/contexts/BrandingContext';
+import { useBranch } from '@/contexts/BranchContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -68,6 +69,7 @@ export default function POSPage() {
     const { tenantId } = useTenant();
     const { config } = useBranding();
     const { items, addItem, getTotal, clearCart } = useCart();
+    const { activeBranchId } = useBranch();
 
     // Memoize total to prevent re-renders in children when other state changes
     const total = React.useMemo(() => items.reduce((sum, item) => sum + item.subtotal, 0), [items]);
@@ -317,7 +319,7 @@ export default function POSPage() {
                 const saleRef = doc(collection(db, 'sales'));
                 const salesId = saleRef.id;
 
-                const branchId = user?.branch_id || 'default_branch';
+                const branchId = activeBranchId || user?.branch_id || 'default_branch';
 
                 // 1. COLLECT ALL READS FIRST
                 const productRefs = items.map(item => doc(db, 'products', item.producto.id));
@@ -460,7 +462,7 @@ export default function POSPage() {
                 const saleRecord: Sale = {
                     id: salesId,
                     tenantId: tenantId!,
-                    branch_id: user?.branch_id || undefined,
+                    branch_id: branchId || undefined,
                     items: [...items],
                     total: totalVenta,
                     metodo_pago: paymentMethod,

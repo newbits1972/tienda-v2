@@ -13,6 +13,7 @@ import { useTenant } from '@/hooks/useTenant';
 import { useBranch } from '@/contexts/BranchContext';
 import { cn, formatCurrency } from '@/lib/utils';
 import { Plus, Minus, ShoppingBag, Barcode, Tag, Shirt, Layers, Info } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface VariantSelectorDialogProps {
     isOpen: boolean;
@@ -33,7 +34,7 @@ interface VariantSelectorDialogProps {
  */
 export function VariantSelectorDialog({ isOpen, onClose, product, onSelect }: VariantSelectorDialogProps) {
     const { tenantId } = useTenant();
-    const { branches } = useBranch();
+    const { branches, activeBranchId } = useBranch();
     const [variants, setVariants] = useState<ProductVariant[]>([]);
     const [selectedColor, setSelectedColor] = useState<string | null>(null);
     const [selectedTalle, setSelectedTalle] = useState<string | null>(null);
@@ -91,7 +92,14 @@ export function VariantSelectorDialog({ isOpen, onClose, product, onSelect }: Va
               stock_actual: product.stock_actual ?? (product.stock_controlado ? 0 : 99),
           }))
         : (selectedColor
-              ? variants.filter(v => v.color === selectedColor)
+              ? variants.filter(v => v.color === selectedColor).map(v => {
+                    const branchId = activeBranchId || 'default_branch';
+                    const stockLocal = v.stock_by_branch?.[branchId] ?? 0;
+                    return {
+                        ...v,
+                        stock_actual: stockLocal // Usar temporalmente el stock de la sucursal para la UI
+                    };
+                })
               : []);
 
     // Buscar si existe una variante de este color con una imagen específica para actualizar la vista previa
@@ -141,6 +149,18 @@ export function VariantSelectorDialog({ isOpen, onClose, product, onSelect }: Va
         }
 
         if (!variant) return;
+
+        // Validar stock disponible en la sucursal activa
+        if (product.stock_controlado && !usaFallbackVirtual) {
+            const branchId = activeBranchId || 'default_branch';
+            const stockLocal = variant.stock_by_branch?.[branchId] ?? 0;
+            if (stockLocal <= 0) {
+                toast.warning(`Atención: La variante seleccionada no cuenta con stock en esta sucursal.`);
+            } else if (stockLocal < cantidad) {
+                toast.warning(`Atención: La cantidad seleccionada (${cantidad} u.) supera el stock disponible en esta sucursal (${stockLocal} u.).`);
+            }
+        }
+
         onSelect(product, variant, cantidad);
     };
 

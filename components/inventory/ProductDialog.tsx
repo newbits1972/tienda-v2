@@ -199,15 +199,18 @@ export function ProductDialog({ product, open, onOpenChange, defaultType = 'prod
                 );
 
                 if (preexistente) {
+                    const branchId = user?.branch_id || 'default_branch';
+                    const stockActualLocal = preexistente.stock_by_branch?.[branchId] || 0;
                     rows.push({
                         id: preexistente.id,
                         talle: preexistente.talle,
                         color: preexistente.color,
                         color_hex: preexistente.color_hex || colorObj.hex || '#cccccc',
-                        stock_actual: preexistente.stock_actual || 0,
+                        stock_actual: stockActualLocal,
                         codigo_barras: preexistente.codigo_barras || '',
                         sku: preexistente.sku || '',
                         precio_venta: preexistente.precio_venta,
+                        stock_by_branch: preexistente.stock_by_branch || {},
                     });
                 } else {
                     // Autogenerar SKU y código de barras para la nueva fila
@@ -321,8 +324,20 @@ export function ProductDialog({ product, open, onOpenChange, defaultType = 'prod
         try {
             const tiene_variantes = data.tiene_variantes;
             
-            // Sumar el stock de todas las variantes de la matriz
-            const totalStockMatriz = matrizVariantes.reduce((sum, v) => sum + (v.stock_actual || 0), 0);
+            // Calcular el stock total acumulado para el producto principal sumando el stock de todas las sucursales de cada variante
+            let totalStockMatriz = 0;
+            if (tiene_variantes) {
+                matrizVariantes.forEach(row => {
+                    const branchId = user?.branch_id || 'default_branch';
+                    const previousBranchMap = row.stock_by_branch || {};
+                    const newBranchMap = {
+                        ...previousBranchMap,
+                        [branchId]: row.stock_actual || 0
+                    };
+                    const varStockActual = Object.values(newBranchMap).reduce((sum: number, val: any) => sum + (val || 0), 0);
+                    totalStockMatriz += varStockActual;
+                });
+            }
 
             // Preparar listado estructurado de colores
             const coloresObj = coloresList.map(c => ({ nombre: c.nombre, hex: c.hex || '#cccccc' }));
@@ -369,6 +384,14 @@ export function ProductDialog({ product, open, onOpenChange, defaultType = 'prod
 
                 // 1. Crear o actualizar cada variante de la matriz
                 matrizVariantes.forEach(row => {
+                    const branchId = user?.branch_id || 'default_branch';
+                    const previousBranchMap = row.stock_by_branch || {};
+                    const newBranchMap = {
+                        ...previousBranchMap,
+                        [branchId]: row.stock_actual || 0
+                    };
+                    const varStockActual = Object.values(newBranchMap).reduce((sum: number, val: any) => sum + (val || 0), 0);
+
                     const variantData = {
                         tenantId: product?.tenantId || tenantId || 'default_store',
                         producto_id: productId,
@@ -378,11 +401,9 @@ export function ProductDialog({ product, open, onOpenChange, defaultType = 'prod
                         color_hex: row.color_hex || '#cccccc',
                         sku: row.sku,
                         codigo_barras: row.codigo_barras,
-                        stock_actual: row.stock_actual || 0,
+                        stock_actual: varStockActual,
                         stock_minimo: 0,
-                        stock_by_branch: {
-                            [user?.branch_id || 'default_branch']: row.stock_actual || 0
-                        },
+                        stock_by_branch: newBranchMap,
                         precio_venta: row.precio_venta || null,
                         activo: true,
                         updated_at: Timestamp.now(),
