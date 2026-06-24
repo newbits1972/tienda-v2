@@ -48,6 +48,8 @@ const productSchema = z.object({
     talle: z.string().optional(),
     color: z.string().optional(),
     material: z.string().optional(),
+    genero: z.string().optional(),
+    temporada: z.string().optional(),
 
     precio_costo: z.coerce.number().min(0).optional().nullable(),
     precio_venta: z.coerce.number().min(0),
@@ -94,6 +96,8 @@ export function ProductDialog({ product, open, onOpenChange, defaultType = 'prod
             talle: '',
             color: '',
             material: '',
+            genero: 'unisex',
+            temporada: '',
             precio_costo: null,
             precio_venta: 0,
             precio_oferta: null,
@@ -139,6 +143,8 @@ export function ProductDialog({ product, open, onOpenChange, defaultType = 'prod
                 talle: product.talle || '',
                 color: product.color || '',
                 material: product.material || '',
+                genero: product.genero || 'unisex',
+                temporada: product.temporada || '',
                 precio_costo: product.precio_costo ?? null,
                 precio_venta: product.precio_venta,
                 precio_oferta: product.precio_oferta || null,
@@ -166,6 +172,8 @@ export function ProductDialog({ product, open, onOpenChange, defaultType = 'prod
                 talle: '',
                 color: '',
                 material: '',
+                genero: 'unisex',
+                temporada: '',
                 precio_costo: null,
                 precio_venta: 0,
                 precio_oferta: null,
@@ -193,6 +201,7 @@ export function ProductDialog({ product, open, onOpenChange, defaultType = 'prod
             const finalData = {
                 ...data,
                 tipo: product?.tipo || defaultType,
+                tenantId: product?.tenantId || tenantId || 'default_store',
                 // Limpiar stock para productos elaborados
                 stock_actual: data.stock_controlado ? data.stock_actual : undefined,
                 stock_minimo: data.stock_controlado ? data.stock_minimo : undefined,
@@ -426,6 +435,27 @@ export function ProductDialog({ product, open, onOpenChange, defaultType = 'prod
                                         <Input
                                             {...form.register('material')}
                                             placeholder="Ej: Algodón, Cuero, etc"
+                                        />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label className="text-muted-foreground font-bold uppercase text-[10px] tracking-wider">Género</Label>
+                                        <select
+                                            {...form.register('genero')}
+                                            className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                        >
+                                            <option value="unisex">Unisex</option>
+                                            <option value="hombre">Hombre</option>
+                                            <option value="mujer">Mujer</option>
+                                            <option value="infantil">Infantil</option>
+                                        </select>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label className="text-muted-foreground font-bold uppercase text-[10px] tracking-wider">Temporada</Label>
+                                        <Input
+                                            {...form.register('temporada')}
+                                            placeholder="Ej: Verano 26, Permanente"
                                         />
                                     </div>
                                 </div>

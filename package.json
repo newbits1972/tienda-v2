@@ -28,6 +28,7 @@
         "date-fns": "^4.1.0",
         "dotenv": "^17.2.3",
         "firebase": "^12.9.0",
+        "firebase-admin": "^14.0.0",
         "framer-motion": "^12.34.0",
         "html-to-image": "^1.11.13",
         "html2canvas": "^1.4.1",

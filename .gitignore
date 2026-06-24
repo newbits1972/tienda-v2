@@ -73,3 +73,7 @@ PROPUESTA*.md
 
 # Excluir archivo temporal nul de Windows
 nul
+
+# Firebase Service Account Credentials
+firebase-service-account.json
+
