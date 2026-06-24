@@ -295,8 +295,8 @@ export default function POSPage() {
         }
     };
 
-    const handleVariantSelected = (product: Product, variant: any) => {
-        addItem(product, variant, 1);
+    const handleVariantSelected = (product: Product, variant: any, cantidad: number) => {
+        addItem(product, variant, cantidad);
         setIsVariantSelectorOpen(false);
         setSelectedProductForVariant(null);
     };
@@ -564,11 +564,12 @@ export default function POSPage() {
             )}
 
             {/* Main Layout */}
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 min-h-[calc(100vh-180px)]">
-                <div className="lg:col-span-3">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 h-[calc(100vh-160px)] overflow-hidden">
+                {/* Lado Izquierdo: Catálogo de Productos */}
+                <div className="lg:col-span-3 h-full flex flex-col overflow-hidden">
                     <Card className="h-full border-border bg-card flex flex-col overflow-hidden">
-                        <CardContent className="p-4 h-full min-h-[400px] flex flex-col">
-                            <div className="flex items-center justify-between mb-4 gap-4">
+                        <CardContent className="p-4 h-full flex flex-col overflow-hidden">
+                            <div className="flex items-center justify-between mb-4 gap-4 flex-shrink-0">
                                 <h3 className="text-sm font-bold text-primary uppercase flex items-center gap-2">
                                     <Package className="w-4 h-4" /> Productos
                                 </h3>
@@ -599,67 +600,67 @@ export default function POSPage() {
                     </Card>
                 </div>
 
-                <div className="lg:col-span-1 flex flex-col gap-4">
-                    <div className="flex-1">
+                {/* Lado Derecho: Carrito y Acciones de Facturación (Unificado) */}
+                <div className="lg:col-span-1 h-full flex flex-col gap-4 overflow-hidden">
+                    {/* Carrito de Compras (Scroll Interno) */}
+                    <div className="flex-1 overflow-hidden">
                         <ShoppingCart />
                     </div>
-                </div>
 
-                {/* Right: Summary & Actions */}
-                <div className="lg:col-span-1 space-y-4">
-                    <Card className="border-border bg-card shadow-sm">
-                        <CardContent className="pt-6">
-                            <div className="space-y-4">
-                                <div className="flex justify-between items-center text-lg">
-                                    <span className="text-muted-foreground">Items:</span>
-                                    <span className="font-semibold">{items.length}</span>
-                                </div>
-                                <div className="flex justify-between items-center text-3xl font-bold">
-                                    <span>TOTAL:</span>
-                                    <span className="text-primary">{formatCurrency(total)}</span>
-                                </div>
+                    {/* Resumen de Total y Acciones del POS */}
+                    <div className="bg-card border border-border rounded-2xl p-4 flex-shrink-0 space-y-3.5 shadow-sm">
+                        <div className="space-y-2">
+                            <div className="flex justify-between items-center text-xs text-muted-foreground">
+                                <span>Líneas en carrito:</span>
+                                <span className="font-bold text-foreground">{items.length}</span>
                             </div>
-                        </CardContent>
-                    </Card>
+                            <div className="flex justify-between items-baseline pt-2 border-t border-border/60">
+                                <span className="text-xs uppercase font-black text-muted-foreground/80 tracking-wider">TOTAL A PAGAR:</span>
+                                <span className="text-2xl font-black text-primary">{formatCurrency(total)}</span>
+                            </div>
+                        </div>
 
-                    <Button
-                        variant="primary"
-                        size="lg"
-                        className="w-full text-xl h-20 shadow-2xl"
-                        onClick={handleMainAction}
-                        disabled={items.length === 0 || loading}
-                    >
-                        <DollarSign className="w-6 h-6 mr-2" />
-                        Cobrar (F8)
-                    </Button>
-
-                    <div className="grid grid-cols-2 gap-2">
                         <Button
-                            variant="outline"
-                            disabled={items.length === 0}
-                            onClick={clearCart}
-                            className="border-border hover:bg-accent"
+                            variant="primary"
+                            size="lg"
+                            className="w-full text-lg h-14 shadow-lg hover:shadow-xl transition-all duration-200 font-bold flex items-center justify-center gap-2 rounded-xl"
+                            onClick={handleMainAction}
+                            disabled={items.length === 0 || loading}
                         >
-                            Limpiar
+                            <DollarSign className="w-5 h-5" />
+                            Cobrar (F8)
                         </Button>
+
+                        <div className="grid grid-cols-2 gap-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={items.length === 0}
+                                onClick={clearCart}
+                                className="border-border hover:bg-destructive/10 hover:text-destructive text-xs h-9 font-semibold rounded-xl"
+                            >
+                                Limpiar
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setIsRegisterCloseOpen(true)}
+                                className="border-border hover:bg-accent text-xs h-9 font-semibold rounded-xl"
+                            >
+                                Cerrar Caja
+                            </Button>
+                        </div>
+
                         <Button
                             variant="outline"
-                            onClick={() => setIsRegisterCloseOpen(true)}
-                            className="border-border hover:bg-accent"
+                            size="sm"
+                            onClick={() => setIsReturnOpen(true)}
+                            className="w-full border-border hover:bg-accent text-[11px] h-8 font-semibold rounded-xl"
                         >
-                            Cerrar Caja
+                            <RotateCcw className="w-3.5 h-3.5 mr-1.5" />
+                            Devoluciones (BORIS)
                         </Button>
                     </div>
-
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setIsReturnOpen(true)}
-                        className="w-full border-border hover:bg-accent text-xs"
-                    >
-                        <RotateCcw className="w-3 h-3 mr-2" />
-                        Devoluciones (BORIS)
-                    </Button>
                 </div>
             </div>
 

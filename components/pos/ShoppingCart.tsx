@@ -53,14 +53,6 @@ function ShoppingCartComponent() {
                     <CartItem key={item.internalId || item.producto.id} item={item} onRemove={removeItem} onUpdateQuantity={updateQuantity} />
                 ))}
             </CardContent>
-
-            {/* Total */}
-            <div className="border-t p-6 bg-muted/50">
-                <div className="flex justify-between items-center text-2xl font-bold">
-                    <span>TOTAL</span>
-                    <span className="text-primary">{formatCurrency(getTotal())}</span>
-                </div>
-            </div>
         </Card>
     );
 }
