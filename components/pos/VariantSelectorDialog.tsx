@@ -88,7 +88,7 @@ export function VariantSelectorDialog({ isOpen, onClose, product, onSelect }: Va
               id: `virtual-${selectedColor}-${talle}-${product.id}`,
               talle,
               color: selectedColor || '',
-              stock_actual: 99, // Stock virtual alto para permitir venta libre
+              stock_actual: product.stock_actual ?? (product.stock_controlado ? 0 : 99),
           }))
         : (selectedColor
               ? variants.filter(v => v.color === selectedColor)
@@ -132,7 +132,7 @@ export function VariantSelectorDialog({ isOpen, onClose, product, onSelect }: Va
                 color_hex: colorHex(selectedColor),
                 sku: `${product.nombre.slice(0, 3).toUpperCase()}-${selectedColor.slice(0, 3).toUpperCase()}-${selectedTalle}`,
                 codigo_barras: product.codigo_barras || '',
-                stock_actual: 99,
+                stock_actual: product.stock_actual ?? (product.stock_controlado ? 0 : 99),
                 stock_minimo: 0,
                 activo: true,
                 created_at: Timestamp.now(),
