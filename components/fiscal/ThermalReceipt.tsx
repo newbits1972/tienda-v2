@@ -137,6 +137,26 @@ export const ThermalReceipt = forwardRef<HTMLDivElement, ThermalReceiptProps>(
                             </div>
                         </>
                     )}
+                    {(() => {
+                        const subtotalOriginal = sale.items.reduce((sum, item) => sum + (item.subtotal || 0), 0);
+                        const diferencia = sale.total - subtotalOriginal;
+                        if (diferencia > 0.01) {
+                            return (
+                                <div className="flex justify-between text-xs mb-1 text-gray-700">
+                                    <span>Recargo/Intereses:</span>
+                                    <span>+{formatCurrency(diferencia)}</span>
+                                </div>
+                            );
+                        } else if (diferencia < -0.01) {
+                            return (
+                                <div className="flex justify-between text-xs mb-1 text-gray-700">
+                                    <span>Descuento Pago Inmediato:</span>
+                                    <span>-{formatCurrency(Math.abs(diferencia))}</span>
+                                </div>
+                            );
+                        }
+                        return null;
+                    })()}
                     <div className="flex justify-between text-lg font-bold border-t border-black pt-1">
                         <span>TOTAL:</span>
                         <span>{formatCurrency(sale.total)}</span>

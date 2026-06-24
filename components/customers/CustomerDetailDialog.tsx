@@ -19,8 +19,12 @@ import {
     ArrowUpCircle,
     ArrowDownCircle,
     X,
-    Download
+    Download,
+    Printer
 } from 'lucide-react';
+import { useRef } from 'react';
+import { useReactToPrint } from 'react-to-print';
+import { AccountBalanceTicket } from '@/components/pos/AccountBalanceTicket';
 import {
     Dialog,
     DialogContent,
@@ -54,6 +58,19 @@ export function CustomerDetailDialog({ isOpen, onClose, customer }: CustomerDeta
     const [paymentAmount, setPaymentAmount] = useState('');
     const [paymentNote, setPaymentNote] = useState('');
     const [loading, setLoading] = useState(false);
+    const [lastPaymentAmount, setLastPaymentAmount] = useState<number | undefined>(undefined);
+    
+    const ticketRef = useRef<HTMLDivElement>(null);
+    const businessData = {
+        nombre: 'TiendaLink',
+        cuit: '30-11223344-9',
+        direccion: 'Sede Central',
+        telefono: '1122334455'
+    };
+
+    const handlePrintTicket = useReactToPrint({
+        contentRef: ticketRef,
+    });
 
     useEffect(() => {
         if (!customer) return;
@@ -113,9 +130,16 @@ export function CustomerDetailDialog({ isOpen, onClose, customer }: CustomerDeta
                 });
             });
 
+            const amountRegistered = parseFloat(paymentAmount);
+            setLastPaymentAmount(amountRegistered);
             setIsPaymentDialogOpen(false);
             setPaymentAmount('');
             setPaymentNote('');
+            
+            // Disparar la impresión automáticamente tras un abono
+            setTimeout(() => {
+                handlePrintTicket();
+            }, 300);
         } catch (error) {
             console.error('Error registering payment:', error);
             alert('Error al registrar el pago');
@@ -181,14 +205,27 @@ export function CustomerDetailDialog({ isOpen, onClose, customer }: CustomerDeta
                                     </p>
                                 </CardContent>
                             </Card>
-                            <Button
-                                variant="gold"
-                                className="h-full flex flex-col items-center justify-center gap-1"
-                                onClick={() => setIsPaymentDialogOpen(true)}
-                            >
-                                <DollarSign className="w-5 h-5" />
-                                <span>Registrar Pago</span>
-                            </Button>
+                            <div className="flex flex-col gap-2">
+                                <Button
+                                    variant="gold"
+                                    className="w-full flex-row items-center justify-center gap-2 h-10"
+                                    onClick={() => setIsPaymentDialogOpen(true)}
+                                >
+                                    <DollarSign className="w-4 h-4" />
+                                    <span>Registrar Pago</span>
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    className="w-full flex-row items-center justify-center gap-2 h-10 border-primary/20 text-primary hover:bg-primary/10"
+                                    onClick={() => {
+                                        setLastPaymentAmount(undefined);
+                                        setTimeout(() => handlePrintTicket(), 100);
+                                    }}
+                                >
+                                    <Printer className="w-4 h-4" />
+                                    <span>Imprimir Saldo</span>
+                                </Button>
+                            </div>
                         </div>
 
                         {/* Movement Table */}
@@ -295,6 +332,16 @@ export function CustomerDetailDialog({ isOpen, onClose, customer }: CustomerDeta
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            {/* Ticket de Saldo Oculto para Impresión */}
+            <div className="hidden">
+                <AccountBalanceTicket
+                    ref={ticketRef}
+                    customer={customer}
+                    businessData={businessData}
+                    paymentAmount={lastPaymentAmount}
+                />
+            </div>
         </>
     );
 }

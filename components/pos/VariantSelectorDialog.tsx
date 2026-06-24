@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Product, ProductVariant } from '@/lib/types';
 import { db } from '@/lib/firebase/config';
 import { useTenant } from '@/hooks/useTenant';
+import { useBranch } from '@/contexts/BranchContext';
 import { cn } from '@/lib/utils';
 
 interface VariantSelectorDialogProps {
@@ -27,6 +28,7 @@ interface VariantSelectorDialogProps {
  */
 export function VariantSelectorDialog({ isOpen, onClose, product, onSelect }: VariantSelectorDialogProps) {
     const { tenantId } = useTenant();
+    const { branches } = useBranch();
     const [variants, setVariants] = useState<ProductVariant[]>([]);
     const [selectedColor, setSelectedColor] = useState<string | null>(null);
     const [selectedTalle, setSelectedTalle] = useState<string | null>(null);
@@ -154,14 +156,48 @@ export function VariantSelectorDialog({ isOpen, onClose, product, onSelect }: Va
 
                     {/* Stock info */}
                     {selectedColor && selectedTalle && (
-                        <div className="bg-muted/50 rounded-lg p-3 text-sm">
-                            <Badge variant="outline" className="mb-1">
-                                Stock: {stockDeCombinacion(selectedColor, selectedTalle)} u.
-                            </Badge>
-                            <p className="text-muted-foreground text-xs mt-1">
-                                SKU: {variants.find(v => v.color === selectedColor && v.talle === selectedTalle)?.sku}
-                            </p>
-                        </div>
+                        (() => {
+                            const selectedVariant = variants.find(v => v.color === selectedColor && v.talle === selectedTalle);
+                            if (!selectedVariant) return null;
+
+                            return (
+                                <div className="bg-muted/30 rounded-xl p-4 border border-border space-y-3">
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-xs uppercase font-black text-muted-foreground">Disponibilidad en Tiendas</span>
+                                        <Badge variant="outline" className="bg-primary/10 border-primary/20 text-primary font-bold">
+                                            Total: {selectedVariant.stock_actual} u.
+                                        </Badge>
+                                    </div>
+                                    
+                                    <div className="space-y-1.5 text-xs">
+                                        {branches.filter(b => b.activa).map((branch) => {
+                                            const branchStock = selectedVariant.stock_by_branch?.[branch.id] || 0;
+                                            return (
+                                                <div key={branch.id} className="flex justify-between items-center p-2 rounded-lg bg-background/50 border border-border/50">
+                                                    <span className="font-medium text-foreground">{branch.nombre}</span>
+                                                    {branchStock > 0 ? (
+                                                        <Badge className="bg-green-500/10 hover:bg-green-500/20 text-green-500 border-green-500/20 font-bold">
+                                                            {branchStock} u.
+                                                        </Badge>
+                                                    ) : (
+                                                        <span className="text-muted-foreground/40 font-medium">Sin stock</span>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                        {branches.filter(b => b.activa).length === 0 && (
+                                            <p className="text-[11px] text-muted-foreground text-center py-2">
+                                                No hay sucursales activas registradas.
+                                            </p>
+                                        )}
+                                    </div>
+                                    
+                                    <p className="text-[10px] text-zinc-500 font-mono text-right">
+                                        SKU: {selectedVariant.sku}
+                                    </p>
+                                </div>
+                            );
+                        })()
                     )}
                 </div>
 

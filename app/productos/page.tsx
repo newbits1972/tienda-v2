@@ -2,13 +2,14 @@
 
 import React, { useState, useEffect } from 'react';
 import { collection, onSnapshot, query, addDoc, updateDoc, doc, Timestamp, deleteDoc, where, writeBatch, getDocs } from 'firebase/firestore';
-import { Package, Plus, Search, Edit, Trash2, TrendingUp, AlertTriangle, Upload, Sparkles } from 'lucide-react';
+import { Package, Plus, Search, Edit, Trash2, TrendingUp, AlertTriangle, Upload, Sparkles, Tag } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ProductDialog } from '@/components/inventory/ProductDialog';
 import { BulkImportDialog } from '@/components/inventory/BulkImportDialog';
+import { BarcodeGeneratorDialog } from '@/components/inventory/BarcodeGeneratorDialog';
 import { PriceUpdateDialog } from '@/components/inventory/PriceUpdateDialog';
 import { Product } from '@/lib/types';
 import { db } from '@/lib/firebase/config';
@@ -28,6 +29,7 @@ export default function CartaPage() {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
     const [isPriceUpdateOpen, setIsPriceUpdateOpen] = useState(false);
+    const [isBarcodeGeneratorOpen, setIsBarcodeGeneratorOpen] = useState(false);
 
     // Load products in real-time
     useEffect(() => {
@@ -217,6 +219,11 @@ export default function CartaPage() {
                                     <TrendingUp className="w-4 h-4" />
                                     Actualizar Precios
                                 </Button>
+
+                                <Button variant="outline" className="gap-2" onClick={() => setIsBarcodeGeneratorOpen(true)}>
+                                    <Tag className="w-4 h-4" />
+                                    Imprimir Etiquetas
+                                </Button>
                             </>
                         )}
 
@@ -397,6 +404,12 @@ export default function CartaPage() {
                 isOpen={isPriceUpdateOpen}
                 onClose={() => setIsPriceUpdateOpen(false)}
                 categories={categories}
+            />
+
+            <BarcodeGeneratorDialog
+                isOpen={isBarcodeGeneratorOpen}
+                onClose={() => setIsBarcodeGeneratorOpen(false)}
+                products={products}
             />
         </div>
     );

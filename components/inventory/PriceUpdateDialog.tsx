@@ -49,8 +49,10 @@ interface PriceUpdateDialogProps {
 
 export function PriceUpdateDialog({ isOpen, onClose, categories }: PriceUpdateDialogProps) {
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
-    const [updateType, setUpdateType] = useState<'percent' | 'fixed'>('percent');
+    const [updateType, setUpdateType] = useState<'percent' | 'fixed' | 'usd_exchange'>('percent');
     const [amount, setAmount] = useState<string>('');
+    const [dolarAnterior, setDolarAnterior] = useState<string>('');
+    const [dolarNuevo, setDolarNuevo] = useState<string>('');
     const [rounding, setRounding] = useState<string>('none');
     const [updateCostPrice, setUpdateCostPrice] = useState(false);
     const [previewProducts, setPreviewProducts] = useState<{ id: string, nombre: string, original: number, nuevo: number }[]>([]);
@@ -64,9 +66,24 @@ export function PriceUpdateDialog({ isOpen, onClose, categories }: PriceUpdateDi
         documentTitle: 'Reporte_Actualizacion_Precios',
     });
 
+    // Resetear valores al cambiar el tipo de actualización
+    useEffect(() => {
+        setAmount('');
+        setDolarAnterior('');
+        setDolarNuevo('');
+        setPreviewProducts([]);
+    }, [updateType, isOpen]);
+
     // Calculate preview when options change
     useEffect(() => {
-        if (!isOpen || !amount || isNaN(parseFloat(amount))) {
+        if (!isOpen) return;
+
+        const isAmountValid = amount && !isNaN(parseFloat(amount));
+        const isUsdExchangeValid = updateType === 'usd_exchange' && 
+            dolarAnterior && !isNaN(parseFloat(dolarAnterior)) && parseFloat(dolarAnterior) > 0 &&
+            dolarNuevo && !isNaN(parseFloat(dolarNuevo));
+
+        if (!isAmountValid && !isUsdExchangeValid) {
             setPreviewProducts([]);
             return;
         }
@@ -81,14 +98,24 @@ export function PriceUpdateDialog({ isOpen, onClose, categories }: PriceUpdateDi
                 }
 
                 const snapshot = await getDocs(q);
-                const value = parseFloat(amount);
+                let value = 0;
+                let actualUpdateType = updateType;
+
+                if (updateType === 'usd_exchange') {
+                    const ant = parseFloat(dolarAnterior);
+                    const nvo = parseFloat(dolarNuevo);
+                    value = ((nvo - ant) / ant) * 100;
+                    actualUpdateType = 'percent';
+                } else {
+                    value = parseFloat(amount);
+                }
 
                 const preview = snapshot.docs.map(doc => {
                     const data = doc.data() as Product;
                     const original = data.precio_venta;
                     let nuevo = original;
 
-                    if (updateType === 'percent') {
+                    if (actualUpdateType === 'percent') {
                         nuevo = original * (1 + (value / 100));
                     } else {
                         nuevo = original + value;
@@ -117,10 +144,15 @@ export function PriceUpdateDialog({ isOpen, onClose, categories }: PriceUpdateDi
 
         const timeoutId = setTimeout(loadPreview, 500);
         return () => clearTimeout(timeoutId);
-    }, [selectedCategory, updateType, amount, rounding, isOpen]);
+    }, [selectedCategory, updateType, amount, dolarAnterior, dolarNuevo, rounding, isOpen]);
 
     const handleApplyUpdate = async () => {
-        if (!amount || isNaN(parseFloat(amount))) return;
+        const isAmountValid = amount && !isNaN(parseFloat(amount));
+        const isUsdExchangeValid = updateType === 'usd_exchange' && 
+            dolarAnterior && !isNaN(parseFloat(dolarAnterior)) && parseFloat(dolarAnterior) > 0 &&
+            dolarNuevo && !isNaN(parseFloat(dolarNuevo));
+
+        if (!isAmountValid && !isUsdExchangeValid) return;
 
         setIsProcessing(true);
         try {
@@ -131,7 +163,17 @@ export function PriceUpdateDialog({ isOpen, onClose, categories }: PriceUpdateDi
             }
 
             const snapshot = await getDocs(q);
-            const value = parseFloat(amount);
+            let value = 0;
+            let actualUpdateType = updateType;
+
+            if (updateType === 'usd_exchange') {
+                const ant = parseFloat(dolarAnterior);
+                const nvo = parseFloat(dolarNuevo);
+                value = ((nvo - ant) / ant) * 100;
+                actualUpdateType = 'percent';
+            } else {
+                value = parseFloat(amount);
+            }
             const batch = writeBatch(db);
 
             snapshot.docs.forEach(docSnap => {
@@ -139,7 +181,7 @@ export function PriceUpdateDialog({ isOpen, onClose, categories }: PriceUpdateDi
                 const originalVenta = data.precio_venta;
                 let nuevoVenta = originalVenta;
 
-                if (updateType === 'percent') {
+                if (actualUpdateType === 'percent') {
                     nuevoVenta = originalVenta * (1 + (value / 100));
                 } else {
                     nuevoVenta = originalVenta + value;
@@ -158,7 +200,7 @@ export function PriceUpdateDialog({ isOpen, onClose, categories }: PriceUpdateDi
                 if (updateCostPrice) {
                     const originalCosto = data.precio_costo || 0;
                     let nuevoCosto = originalCosto;
-                    if (updateType === 'percent') {
+                    if (actualUpdateType === 'percent') {
                         nuevoCosto = originalCosto * (1 + (value / 100));
                     } else {
                         nuevoCosto = originalCosto + value;
@@ -210,37 +252,70 @@ export function PriceUpdateDialog({ isOpen, onClose, categories }: PriceUpdateDi
 
                             <div className="space-y-2">
                                 <Label>Tipo de Ajuste</Label>
-                                <div className="flex gap-2">
+                                <div className="flex gap-2 flex-wrap">
                                     <Button
                                         type="button"
                                         variant={updateType === 'percent' ? 'gold' : 'outline'}
-                                        className="flex-1 gap-2"
+                                        className="flex-1 gap-1 text-[11px] py-2"
                                         onClick={() => setUpdateType('percent')}
                                     >
-                                        <Percent className="w-4 h-4" /> Porcentaje
+                                        <Percent className="w-3.5 h-3.5" /> Porcentaje
                                     </Button>
                                     <Button
                                         type="button"
                                         variant={updateType === 'fixed' ? 'gold' : 'outline'}
-                                        className="flex-1 gap-2"
+                                        className="flex-1 gap-1 text-[11px] py-2"
                                         onClick={() => setUpdateType('fixed')}
                                     >
-                                        <DollarSign className="w-4 h-4" /> Monto Fijo
+                                        <DollarSign className="w-3.5 h-3.5" /> Monto Fijo
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        variant={updateType === 'usd_exchange' ? 'gold' : 'outline'}
+                                        className="flex-1 gap-1 text-[11px] py-2"
+                                        onClick={() => setUpdateType('usd_exchange')}
+                                    >
+                                        <TrendingUp className="w-3.5 h-3.5" /> Ajuste Dólar
                                     </Button>
                                 </div>
                             </div>
 
-                            <div className="space-y-2">
-                                <Label>{updateType === 'percent' ? 'Porcentaje de Ajuste (%)' : 'Monto de Ajuste ($)'}</Label>
-                                <Input
-                                    type="number"
-                                    placeholder={updateType === 'percent' ? "Ej: 15 o -5" : "Ej: 500 o -100"}
-                                    value={amount}
-                                    onChange={(e) => setAmount(e.target.value)}
-                                    className="bg-background border-border"
-                                />
-                                <p className="text-[10px] text-muted-foreground">Usa números negativos para descuentos.</p>
-                            </div>
+                            {updateType === 'usd_exchange' ? (
+                                <div className="grid grid-cols-2 gap-2 animate-in fade-in slide-in-from-top-2">
+                                    <div className="space-y-2">
+                                        <Label>Dólar Anterior ($)</Label>
+                                        <Input
+                                            type="number"
+                                            placeholder="Ej: 1200"
+                                            value={dolarAnterior}
+                                            onChange={(e) => setDolarAnterior(e.target.value)}
+                                            className="bg-background border-border"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Dólar Nuevo ($)</Label>
+                                        <Input
+                                            type="number"
+                                            placeholder="Ej: 1280"
+                                            value={dolarNuevo}
+                                            onChange={(e) => setDolarNuevo(e.target.value)}
+                                            className="bg-background border-border"
+                                        />
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+                                    <Label>{updateType === 'percent' ? 'Porcentaje de Ajuste (%)' : 'Monto de Ajuste ($)'}</Label>
+                                    <Input
+                                        type="number"
+                                        placeholder={updateType === 'percent' ? "Ej: 15 o -5" : "Ej: 500 o -100"}
+                                        value={amount}
+                                        onChange={(e) => setAmount(e.target.value)}
+                                        className="bg-background border-border"
+                                    />
+                                    <p className="text-[10px] text-muted-foreground">Usa números negativos para descuentos.</p>
+                                </div>
+                            )}
 
                             <div className="space-y-2">
                                 <Label>Redondeo</Label>
@@ -297,7 +372,11 @@ export function PriceUpdateDialog({ isOpen, onClose, categories }: PriceUpdateDi
                                 ) : (
                                     <div className="h-full flex flex-col items-center justify-center p-6 text-center">
                                         <AlertTriangle className="w-8 h-8 text-muted-foreground/20 mb-2" />
-                                        <p className="text-xs text-muted-foreground/60">Ingresa un monto para ver la proyección de precios.</p>
+                                        <p className="text-xs text-muted-foreground/60">
+                                            {updateType === 'usd_exchange'
+                                                ? 'Ingresa cotización anterior y nueva para calcular la variación.'
+                                                : 'Ingresa un monto para ver la proyección de precios.'}
+                                        </p>
                                     </div>
                                 )}
                             </div>
@@ -322,11 +401,11 @@ export function PriceUpdateDialog({ isOpen, onClose, categories }: PriceUpdateDi
                         <Button
                             variant="gold"
                             onClick={handleApplyUpdate}
-                            disabled={isProcessing || !amount || previewProducts.length === 0}
+                            disabled={isProcessing || previewProducts.length === 0}
                             className="gap-2"
                         >
                             {isProcessing ? (
-                                <>Actualizando... </>
+                                <>Actualizando...</>
                             ) : (
                                 <>
                                     <CheckCircle2 className="w-4 h-4" />
@@ -342,8 +421,16 @@ export function PriceUpdateDialog({ isOpen, onClose, categories }: PriceUpdateDi
                     <PriceUpdateReport
                         ref={reportRef}
                         category={selectedCategory}
-                        updateType={updateType}
-                        amount={amount}
+                        updateType={updateType === 'usd_exchange' ? 'percent' : updateType}
+                        amount={
+                            updateType === 'usd_exchange'
+                                ? (() => {
+                                      const ant = parseFloat(dolarAnterior || '1');
+                                      const nvo = parseFloat(dolarNuevo || '1');
+                                      return (((nvo - ant) / ant) * 100).toFixed(2);
+                                  })()
+                                : amount
+                        }
                         rounding={rounding}
                         products={previewProducts}
                     />

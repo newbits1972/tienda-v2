@@ -304,9 +304,11 @@ export default function POSPage() {
     const handleCheckout = async (
         paymentMethod: PaymentMethod,
         invoiceType: InvoiceType,
-        customerId?: string
+        customerId?: string,
+        totalFinal?: number
     ) => {
         setLoading(true);
+        const totalVenta = totalFinal !== undefined ? totalFinal : total;
         try {
             let invoiceData: Invoice | undefined;
 
@@ -314,9 +316,18 @@ export default function POSPage() {
                 const saleRef = doc(collection(db, 'sales'));
                 const salesId = saleRef.id;
 
+                const branchId = user?.branch_id || 'default_branch';
+
                 // 1. COLLECT ALL READS FIRST
                 const productRefs = items.map(item => doc(db, 'products', item.producto.id));
                 const productDocs = await Promise.all(productRefs.map(ref => transaction.get(ref)));
+
+                // Filtrar items con variantes para leer sus documentos
+                const variantItems = items.filter(item => item.variante?.id);
+                const variantRefs = variantItems.map(item => doc(db, 'product_variants', item.variante!.id));
+                const variantDocs = variantRefs.length > 0
+                    ? await Promise.all(variantRefs.map(ref => transaction.get(ref)))
+                    : [];
 
                 let customerDoc = null;
                 if (customerId) {
@@ -327,16 +338,13 @@ export default function POSPage() {
                 // 2. CALCULATE AND PREPARE WRITES
                 const updates: (() => void)[] = [];
 
-                // Stock Updates Prep — descuenta del producto padre (agregado).
-                // El stock por variante/sucursal se gestiona en una transacción aparte
-                // (ver Fase 1.5 — stock_by_branch). Por ahora mantenemos la compatibilidad
-                // con el stock_actual del producto padre.
+                // Actualización de stock del producto padre
                 items.forEach((item, index) => {
                     const productDoc = productDocs[index];
                     if (!productDoc.exists()) throw new Error(`Producto ${item.producto.nombre} no encontrado`);
 
                     const currentStock = productDoc.data().stock_actual || 0;
-                    const reduction = item.cantidad;
+                    const reduction = item.cantidad || 1;
 
                     updates.push(() => transaction.update(productRefs[index], {
                         stock_actual: currentStock - reduction,
@@ -344,16 +352,60 @@ export default function POSPage() {
                     }));
                 });
 
-                // Customer CC Update Prep
+                // Actualización de stock por variante y sucursal
+                variantItems.forEach((item, index) => {
+                    const varDoc = variantDocs[index];
+                    if (varDoc && varDoc.exists()) {
+                        const currentVarStock = varDoc.data().stock_actual || 0;
+                        const varBranchStockMap = varDoc.data().stock_by_branch || {};
+                        const currentBranchStock = varBranchStockMap[branchId] || 0;
+                        const reduction = item.cantidad || 1;
+
+                        varBranchStockMap[branchId] = currentBranchStock - reduction;
+
+                        updates.push(() => transaction.update(varDoc.ref, {
+                            stock_actual: currentVarStock - reduction,
+                            stock_by_branch: varBranchStockMap,
+                            updated_at: Timestamp.now()
+                        }));
+                    }
+                });
+
+                // Creación de movimientos de stock para auditoría
+                items.forEach(item => {
+                    const movementRef = doc(collection(db, 'stock_movements'));
+                    const reduction = item.cantidad || 1;
+                    const movementRecord = {
+                        tenantId: tenantId!,
+                        tipo: 'venta',
+                        producto_id: item.producto.id,
+                        variante_id: item.variante?.id || null,
+                        producto_nombre: item.producto.nombre,
+                        talle: item.variante?.talle || item.producto.talle || null,
+                        color: item.variante?.color || item.producto.color || null,
+                        branch_origen: branchId,
+                        cantidad: -reduction,
+                        referencia_id: salesId,
+                        usuario_id: user?.id || 'unknown',
+                        fecha: Timestamp.now(),
+                        nota: `Venta POS #${salesId.substring(0, 6)}`
+                    };
+                    updates.push(() => transaction.set(movementRef, cleanUndefined(movementRecord)));
+                });
+
+                // Actualización de Cuenta Corriente del Cliente
                 if (paymentMethod === 'cuenta_corriente' && customerDoc?.exists()) {
                     const currentSaldo = customerDoc.data().saldo_cuenta_corriente || 0;
                     updates.push(() => transaction.update(customerDoc!.ref, {
-                        saldo_cuenta_corriente: currentSaldo - total,
+                        saldo_cuenta_corriente: currentSaldo - totalVenta,
                         updated_at: Timestamp.now()
                     }));
                 }
 
                 // 3. EXECUTE ALL WRITES
+                // Ejecutar todas las escrituras acumuladas (Corrigiendo bug crítico del POS)
+                updates.forEach(fn => fn());
+
                 let caeData = { cae: '', vencimiento: new Date() };
                 let invoiceNumber = 0;
 
@@ -367,7 +419,7 @@ export default function POSPage() {
                             tipo_comprobante: invoiceType,
                             cliente_cuit: customer?.dni_cuit,
                             cliente_nombre: customer?.nombre || 'Consumidor Final',
-                            total: total,
+                            total: totalVenta,
                             fecha: new Date(),
                             items: items
                         });
@@ -384,7 +436,7 @@ export default function POSPage() {
                         throw new Error('AFIP: ' + afipError.message);
                     }
 
-                    const { base, ivaAmount } = calculateIVADetails(total, 21);
+                    const { base, ivaAmount } = calculateIVADetails(totalVenta, 21);
                     invoiceData = {
                         id: salesId,
                         tipo: invoiceType,
@@ -397,7 +449,7 @@ export default function POSPage() {
                         subtotal: base,
                         iva_21: ivaAmount,
                         iva_105: 0,
-                        total: total,
+                        total: totalVenta,
                         cae: caeData.cae,
                         vencimiento_cae: Timestamp.fromDate(caeData.vencimiento)
                     };
@@ -409,7 +461,7 @@ export default function POSPage() {
                     tenantId: tenantId!,
                     branch_id: user?.branch_id || undefined,
                     items: [...items],
-                    total: total,
+                    total: totalVenta,
                     metodo_pago: paymentMethod,
                     tipo_comprobante: invoiceType,
                     cliente_id: customerId || null as any,
