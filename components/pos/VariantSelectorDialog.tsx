@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, Timestamp } from 'firebase/firestore';
 import {
     Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from '@/components/ui/dialog';
@@ -66,26 +66,65 @@ export function VariantSelectorDialog({ isOpen, onClose, product, onSelect }: Va
 
     if (!product) return null;
 
-    // Colores únicos disponibles (con stock > 0 en alguna combinación)
-    const colores = Array.from(new Set(variants.filter(v => v.stock_actual > 0).map(v => v.color)));
-    // Talles disponibles para el color seleccionado
-    const tallesParaColor = selectedColor
-        ? variants.filter(v => v.color === selectedColor && v.stock_actual > 0)
-        : [];
+    // Si la colección de variantes física está vacía, hacemos un fallback virtual
+    const usaFallbackVirtual = variants.length === 0;
+
+    // Colores únicos disponibles (con stock > 0 o fallback de atributos del padre)
+    const colores = usaFallbackVirtual
+        ? (product.colores_disponibles || []).map(c => c.nombre)
+        : Array.from(new Set(variants.filter(v => v.stock_actual > 0).map(v => v.color)));
+
+    // Talles disponibles para el color seleccionado (o fallback de atributos del padre)
+    const tallesParaColor = usaFallbackVirtual
+        ? (product.talles_disponibles || []).map(talle => ({
+              id: `virtual-${selectedColor}-${talle}-${product.id}`,
+              talle,
+              color: selectedColor || '',
+              stock_actual: 99, // Stock virtual para permitir venta libre
+          }))
+        : (selectedColor
+              ? variants.filter(v => v.color === selectedColor && v.stock_actual > 0)
+              : []);
 
     const colorHex = (colorName: string) => {
+        if (usaFallbackVirtual) {
+            const cOpt = (product.colores_disponibles || []).find(c => c.nombre === colorName);
+            return cOpt?.hex || '#cccccc';
+        }
         const v = variants.find(v => v.color === colorName);
         return v?.color_hex || '#cccccc';
     };
 
     const stockDeCombinacion = (color: string, talle: string) => {
+        if (usaFallbackVirtual) return 99; // Fallback de stock
         const v = variants.find(v => v.color === color && v.talle === talle);
         return v?.stock_actual || 0;
     };
 
     const handleConfirm = () => {
         if (!product || !selectedColor || !selectedTalle) return;
-        const variant = variants.find(v => v.color === selectedColor && v.talle === selectedTalle);
+        let variant = variants.find(v => v.color === selectedColor && v.talle === selectedTalle);
+
+        if (!variant && usaFallbackVirtual) {
+            // Generar una variante virtual al vuelo para que useCart pueda agregarla
+            variant = {
+                id: `virtual-${selectedColor}-${selectedTalle}-${product.id}`,
+                tenantId: tenantId || 'default_store',
+                producto_id: product.id,
+                producto_nombre: product.nombre,
+                talle: selectedTalle,
+                color: selectedColor,
+                color_hex: colorHex(selectedColor),
+                sku: `${product.nombre.slice(0, 3).toUpperCase()}-${selectedColor.slice(0, 3).toUpperCase()}-${selectedTalle}`,
+                codigo_barras: product.codigo_barras,
+                stock_actual: 99,
+                stock_minimo: 0,
+                activo: true,
+                created_at: Timestamp.now(),
+                updated_at: Timestamp.now(),
+            } as any;
+        }
+
         if (!variant) return;
         onSelect(product, variant);
     };

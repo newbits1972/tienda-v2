@@ -173,33 +173,101 @@ export function BulkImportDialog({ isOpen, onClose, tenantId: propTenantId }: Bu
 
         try {
             const productsRef = collection(db, 'products');
-            const batchSize = 450;
+            const variantsRef = collection(db, 'product_variants');
+            const allWrites: { type: 'set', ref: any, data: any }[] = [];
 
-            const chunks = [];
-            for (let i = 0; i < parsedProducts.length; i += batchSize) {
-                chunks.push(parsedProducts.slice(i, i + batchSize));
-            }
+            parsedProducts.forEach(p => {
+                const productDocRef = doc(productsRef);
+                const productId = productDocRef.id;
 
-            for (const chunk of chunks) {
-                const currentBatch = writeBatch(db);
-                chunk.forEach(p => {
-                    const docRef = doc(productsRef);
-                    currentBatch.set(docRef, {
-                        ...p,
-                        created_at: Timestamp.now(),
-                        updated_at: Timestamp.now(),
-                        tenantId: activeTenantId
+                const productData = {
+                    ...p,
+                    created_at: Timestamp.now(),
+                    updated_at: Timestamp.now(),
+                    tenantId: activeTenantId
+                };
+
+                allWrites.push({ type: 'set', ref: productDocRef, data: productData });
+
+                // Generar variantes correspondientes en lote si el producto tiene talles o colores
+                const talles = p.talles_disponibles || [];
+                const colores = p.colores_disponibles || [];
+
+                if (talles.length > 0 || colores.length > 0) {
+                    const coloresIter = colores.length > 0 ? colores : [{ nombre: 'Único', hex: '#cccccc' }];
+                    const tallesIter = talles.length > 0 ? talles : ['Único'];
+
+                    let counter = Date.now() % 1000000000;
+
+                    coloresIter.forEach((colorObj: any) => {
+                        tallesIter.forEach((talle: string) => {
+                            const variantDocRef = doc(variantsRef);
+
+                            // Generar SKU
+                            const slug = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase()
+                                .replace(/[^A-Z0-9]/g, '').slice(0, 3);
+                            const marcaPart = p.marca ? slug(p.marca) : '';
+                            const basePart = slug(p.nombre);
+                            const colorPart = slug(colorObj.nombre);
+                            const tallePart = slug(talle);
+                            const sku = [marcaPart || basePart, basePart, colorPart, tallePart].filter(Boolean).join('-').slice(0, 20);
+
+                            // Generar EAN-13
+                            const baseNumber = counter++;
+                            const padded = `200${String(baseNumber).padStart(9, '0')}`.slice(0, 12);
+                            let sum = 0;
+                            for (let i = 0; i < 12; i++) {
+                                const digit = parseInt(padded[i]);
+                                sum += i % 2 === 0 ? digit : digit * 3;
+                            }
+                            const checkDigit = (10 - (sum % 10)) % 10;
+                            const codigoBarras = padded + checkDigit;
+
+                            const newVariant = {
+                                tenantId: activeTenantId,
+                                producto_id: productId,
+                                producto_nombre: p.nombre,
+                                talle,
+                                color: colorObj.nombre,
+                                color_hex: colorObj.hex || '#cccccc',
+                                sku,
+                                codigo_barras: codigoBarras,
+                                stock_actual: p.stock_actual || 0,
+                                stock_minimo: 0,
+                                stock_by_branch: {
+                                    default_branch: p.stock_actual || 0
+                                },
+                                precio_venta: p.precio_venta,
+                                activo: true,
+                                created_at: Timestamp.now(),
+                                updated_at: Timestamp.now(),
+                            };
+
+                            allWrites.push({ type: 'set', ref: variantDocRef, data: newVariant });
+                        });
                     });
+                }
+            });
+
+            // Guardar en lotes de hasta 400 escrituras para evitar el límite de transacciones de Firestore
+            const batchSize = 400;
+            for (let i = 0; i < allWrites.length; i += batchSize) {
+                const chunk = allWrites.slice(i, i + batchSize);
+                const currentBatch = writeBatch(db);
+                chunk.forEach(write => {
+                    if (write.type === 'set') {
+                        currentBatch.set(write.ref, write.data);
+                    }
                 });
                 await currentBatch.commit();
             }
 
-            alert(`¡Importación completada! ${parsedProducts.length} productos agregados.`);
+            alert(`¡Importación completada! Se agregaron ${parsedProducts.length} productos y sus variantes correspondientes.`);
             reset();
             onClose();
         } catch (error) {
             console.error(error);
-            setErrors(['Error crítico al escribir en base de datos.']);
+            setErrors(['Error crítico al escribir en la base de datos de productos.']);
             setStep('validation');
         } finally {
             setLoading(false);
