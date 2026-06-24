@@ -147,6 +147,12 @@ export function VariantSelectorDialog({ isOpen, onClose, product, onSelect }: Va
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent className="sm:max-w-[850px] p-0 overflow-hidden bg-card border border-border rounded-3xl shadow-2xl">
+                <DialogHeader className="sr-only">
+                    <DialogTitle>{product.nombre}</DialogTitle>
+                    <DialogDescription>
+                        Selección de talle y color para {product.nombre}
+                    </DialogDescription>
+                </DialogHeader>
                 <div className="grid grid-cols-1 md:grid-cols-12">
                     
                     {/* COLUMNA IZQUIERDA: Imagen y Ficha Técnica del Producto */}

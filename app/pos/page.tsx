@@ -140,7 +140,8 @@ export default function POSPage() {
         const q = query(
             collection(db, 'sales'),
             where('tenantId', '==', tenantId),
-            where('fecha', '>=', registerSession.fecha_apertura)
+            where('fecha', '>=', registerSession.fecha_apertura),
+            orderBy('fecha', 'desc')
         );
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
